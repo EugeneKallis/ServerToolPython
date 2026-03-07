@@ -13,3 +13,15 @@ test:
 .PHONY: lint
 lint:
 	$(PYTHON) -m flake8 app
+
+.PHONY: build
+build:
+	docker build --platform linux/amd64 -t 192.168.1.201:31500/server-tool-python:latest .
+
+.PHONY: push
+push:
+	docker push 192.168.1.201:31500/server-tool-python:latest
+
+.PHONY: deploy
+deploy:
+	helm upgrade --install server-tool-python ./charts/server-tool-python
