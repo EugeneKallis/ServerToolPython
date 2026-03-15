@@ -41,3 +41,27 @@ docker-compose up --build
 - **Backend API**: Available at `http://localhost:8080`
 - **Postgres Database**: Port `5432`
 - **Redis Broker**: Port `6379`
+
+## Deployment & CI/CD (Kubernetes + Helm)
+
+This project has been heavily configured to deploy automatically to a Kubernetes cluster via a unified Helm chart using Woodpecker CI (`.woodpecker.yml`). 
+
+### Helm Configuration
+All application microservices (Frontend, Backend, Agent, Redis, Postgres) are bundled into a single Helm Chart located in `charts/servertool/`.
+Global parameters such as image variants and replica counts are defined centrally in `charts/servertool/values.yaml`. 
+
+You can use the built-in Makefile targets to interact with Helm locally:
+- `make helm-deploy` - Upgrades or installs the cluster.
+- `make helm-uninstall` - Tears down the deployment.
+- `make helm-template` - Renders the manifest templates locally for debugging.
+- `make helm-lint` - Lints the Helm configuration syntax.
+
+### Woodpecker CI Setup
+To utilize the automated pipeline designed to build, package, and deploy these Helm charts directly to your Kubernetes node at `192.168.1.201`, you must populate the following **4 Secrets** inside your Woodpecker Repository Dashboard:
+
+1. `docker_username`: `eugenekallis` (Or your Docker Registry username)
+2. `docker_password`: Your Docker Personal Access Token.
+3. `k8s_server`: The IP and Port of your Kubernetes API (e.g. `https://192.168.1.201:6443`)
+4. `k8s_token`: A long-lived admin service-account Token from your Kubernetes cluster granting Woodpecker permission to run `kubectl` and `helm` commands.
+
+Once configured, pushing to the `main` branch will automatically trigger a Woodpecker pipeline executing `make push-all` and `helm upgrade --install`.
