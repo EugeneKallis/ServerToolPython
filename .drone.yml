@@ -1,0 +1,61 @@
+kind: pipeline
+type: docker
+name: deploy-servertool
+
+steps:
+  # 1. Build and push Backend
+  - name: publish-backend
+    image: plugins/docker
+    settings:
+      repo: eugenekallis/servertoolpython-backend
+      tags: latest
+      dockerfile: backend/Dockerfile
+      context: backend
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  # 2. Build and push Frontend
+  - name: publish-frontend
+    image: plugins/docker
+    settings:
+      repo: eugenekallis/servertoolpython-frontend
+      tags: latest
+      dockerfile: frontend/Dockerfile
+      context: frontend
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  # 3. Build and push Agent
+  - name: publish-agent
+    image: plugins/docker
+    settings:
+      repo: eugenekallis/servertoolpython-agent
+      tags: latest
+      dockerfile: agent/Dockerfile
+      context: agent
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  # 4. Deploy using Helm to 192.168.1.201
+  - name: deploy-helm
+    image: pelotech/drone-helm3
+    settings:
+      kubernetes_server:
+        from_secret: k8s_server
+      kubernetes_token:
+        from_secret: k8s_token
+      insecure_skip_tls_verify: true
+      chart: ./charts/servertool
+      release: prod-servertool
+      
+trigger:
+  branch:
+    - main
+  event:
+    - push

@@ -1,4 +1,9 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pytest
 httpx
+sqlalchemy
+alembic
+psycopg2-binary
+redis
+websockets

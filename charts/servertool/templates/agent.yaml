@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-agent
+spec:
+  replicas: {{ .Values.agent.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-agent
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-agent
+    spec:
+      containers:
+      - name: agent
+        image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+        imagePullPolicy: Always
+        env:
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
+        volumeMounts:
+        - mountPath: /host-fs
+          name: host-mount
+      volumes:
+      - name: host-mount
+        hostPath:
+          path: {{ .Values.agent.hostMountPath }}
+          type: DirectoryOrCreate

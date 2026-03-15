@@ -1,0 +1,39 @@
+# Global Network Constants
+ingress:
+  enabled: false
+
+# Backend API Configuration
+backend:
+  replicaCount: 3
+  image:
+    repository: eugenekallis/servertoolpython-backend
+    tag: "latest"
+  service:
+    port: 8080
+
+# Frontend UI Configuration
+frontend:
+  replicaCount: 3
+  image:
+    repository: eugenekallis/servertoolpython-frontend
+    tag: "latest"
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30000
+
+# Agent Configuration (Needs Host Path)
+agent:
+  replicaCount: 1
+  image:
+    repository: eugenekallis/servertoolpython-agent
+    tag: "latest"
+  hostMountPath: "/" 
+
+# Database Configuration
+postgres:
+  image: postgres:15
+  port: 5432
+redis:
+  image: redis:7
+  port: 6379
