@@ -5,7 +5,6 @@ name: deploy-servertool
 labels:
   type: builder
   
-
 steps:
   # 1. Build and push Backend
   - name: publish-backend
