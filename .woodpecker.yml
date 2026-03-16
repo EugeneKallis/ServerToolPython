@@ -54,7 +54,9 @@ steps:
         from_secret: k8s_server
       kubernetes_token:
         from_secret: k8s_token
-      insecure_skip_tls_verify: true
+      skip_tls_verify: true
+      insecure: true
+      debug: true
       chart: ./charts/servertool
       release: prod-servertool
       
