@@ -15,6 +15,8 @@ steps:
       tags: latest
       dockerfile: backend/Dockerfile
       context: backend
+      username:
+        from_secret: docker_username
       password:
         from_secret: docker_password
     when:
@@ -28,6 +30,8 @@ steps:
       tags: latest
       dockerfile: frontend/Dockerfile
       context: frontend
+      username:
+        from_secret: docker_username
       password:
         from_secret: docker_password
     when:
@@ -41,6 +45,8 @@ steps:
       tags: latest
       dockerfile: agent/Dockerfile
       context: agent
+      username:
+        from_secret: docker_username
       password:
         from_secret: docker_password
     when:
