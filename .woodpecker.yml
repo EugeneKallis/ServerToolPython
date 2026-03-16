@@ -50,7 +50,7 @@ steps:
   - name: deploy-helm
     image: pelotech/drone-helm3
     settings:
-      kubernetes_server:
+      api_server:
         from_secret: k8s_server
       kubernetes_token:
         from_secret: k8s_token
