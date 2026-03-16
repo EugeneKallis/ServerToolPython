@@ -15,7 +15,7 @@ spec:
       containers:
       - name: postgres
         image: {{ .Values.postgres.image }}
-        environment:
+        env:
         - name: POSTGRES_USER
           value: postgres
         - name: POSTGRES_PASSWORD
