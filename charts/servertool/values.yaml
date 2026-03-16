@@ -9,7 +9,9 @@ backend:
     repository: eugenekallis/servertoolpython-backend
     tag: "latest"
   service:
+    type: NodePort
     port: 8080
+    nodePort: 30001
 
 # Frontend UI Configuration
 frontend:
@@ -21,6 +23,7 @@ frontend:
     type: NodePort
     port: 3000
     nodePort: 30000
+  api_url: "http://192.168.1.201:30001"
 
 # Agent Configuration (Needs Host Path)
 agent:

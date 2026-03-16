@@ -18,7 +18,7 @@ spec:
         imagePullPolicy: Always
         env:
         - name: NEXT_PUBLIC_API_URL
-          value: /api
+          value: {{ .Values.frontend.api_url | quote }}
         ports:
         - containerPort: {{ .Values.frontend.service.port }}
 ---

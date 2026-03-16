@@ -19,6 +19,7 @@ import {
 import { Plus, ChevronLeft, CheckCircle2 } from 'lucide-react';
 import { SortableListItem } from './SortableListItem';
 import { ItemForm } from './ItemForm';
+import { useMacros } from '../../context/MacroContext';
 
 interface Command {
   id: number;
@@ -41,7 +42,7 @@ interface MacroGroup {
 }
 
 export function AdminPanel() {
-  const [groups, setGroups] = useState<MacroGroup[]>([]);
+  const { macroGroups: groups, refreshMacros } = useMacros();
   const [selectedGroup, setSelectedGroup] = useState<MacroGroup | null>(null);
   const [selectedMacro, setSelectedMacro] = useState<Macro | null>(null);
 
@@ -73,39 +74,18 @@ export function AdminPanel() {
   const handleBackToGroups = () => setView('groups');
   const handleBackToMacros = () => setView('macros');
 
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/macro-groups');
-      const data: MacroGroup[] = await res.json();
-      // Ensure everything is sorted initially by ord
-      data.sort((a: MacroGroup, b: MacroGroup) => a.ord - b.ord);
-      data.forEach((group: MacroGroup) => {
-        group.macros.sort((a: Macro, b: Macro) => a.ord - b.ord);
-        group.macros.forEach((macro: Macro) => {
-          macro.commands.sort((a: Command, b: Command) => a.ord - b.ord);
-        });
-      });
-      setGroups(data);
-
-      if (selectedGroup) {
-        const updatedGroup = data.find((g: MacroGroup) => g.id === selectedGroup.id);
-        setSelectedGroup(updatedGroup || null);
-        if (selectedMacro && updatedGroup) {
-          const updatedMacro = updatedGroup.macros.find((m: Macro) => m.id === selectedMacro.id);
-          setSelectedMacro(updatedMacro || null);
-        } else {
-          setSelectedMacro(null);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch admin data:', err);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (selectedGroup) {
+      const updatedGroup = groups.find((g: MacroGroup) => g.id === selectedGroup.id);
+      setSelectedGroup(updatedGroup || null);
+      if (selectedMacro && updatedGroup) {
+        const updatedMacro = updatedGroup.macros.find((m: Macro) => m.id === selectedMacro.id);
+        setSelectedMacro(updatedMacro || null);
+      } else if (selectedMacro) {
+        setSelectedMacro(null);
+      }
+    }
+  }, [groups, selectedGroup, selectedMacro]);
 
   // Generic Reorder API Call
   // We send individual PATCH requests concurrently
@@ -121,7 +101,7 @@ export function AdminPanel() {
         )
       );
       // Refresh to ensure everything matches backend
-      fetchData();
+      refreshMacros();
     } catch (err) {
       console.error('Failed to update order', err);
     }
@@ -130,13 +110,10 @@ export function AdminPanel() {
   const handleDragEndGroups = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      setGroups((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        const newItems = arrayMove(items, oldIndex, newIndex);
+        const oldIndex = groups.findIndex((i) => i.id === active.id);
+        const newIndex = groups.findIndex((i) => i.id === over.id);
+        const newItems = arrayMove(groups, oldIndex, newIndex);
         updateOrder('macro-groups', newItems);
-        return newItems;
-      });
     }
   };
 
@@ -147,10 +124,6 @@ export function AdminPanel() {
       const newIndex = selectedGroup.macros.findIndex((i) => i.id === over.id);
       const newMacros = arrayMove(selectedGroup.macros, oldIndex, newIndex);
       
-      const updatedGroup = { ...selectedGroup, macros: newMacros };
-      setSelectedGroup(updatedGroup);
-      
-      setGroups((prev) => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
       updateOrder('macros', newMacros);
     }
   };
@@ -161,18 +134,6 @@ export function AdminPanel() {
       const oldIndex = selectedMacro.commands.findIndex((i) => i.id === active.id);
       const newIndex = selectedMacro.commands.findIndex((i) => i.id === over.id);
       const newCommands = arrayMove(selectedMacro.commands, oldIndex, newIndex);
-      
-      const updatedMacro = { ...selectedMacro, commands: newCommands };
-      setSelectedMacro(updatedMacro);
-      
-      if (selectedGroup) {
-        const updatedGroup = { 
-          ...selectedGroup, 
-          macros: selectedGroup.macros.map(m => m.id === updatedMacro.id ? updatedMacro : m) 
-        };
-        setSelectedGroup(updatedGroup);
-        setGroups((prev) => prev.map(g => g.id === updatedGroup.id ? updatedGroup : g));
-      }
       
       updateOrder('commands', newCommands);
     }
@@ -196,7 +157,7 @@ export function AdminPanel() {
 
     setIsGroupModalOpen(false);
     setEditingGroup(null);
-    fetchData();
+    refreshMacros();
     showSuccess(isEditing ? 'Macro Group updated successfully.' : 'Macro Group created successfully.');
   };
 
@@ -204,7 +165,7 @@ export function AdminPanel() {
     if (confirm('Are you sure you want to delete this Macro Group?')) {
       await fetch(`/api/macro-groups/${id}`, { method: 'DELETE' });
       if (selectedGroup?.id === id) setSelectedGroup(null);
-      fetchData();
+      refreshMacros();
       showSuccess('Macro Group deleted successfully.');
     }
   };
@@ -229,7 +190,7 @@ export function AdminPanel() {
 
     setIsMacroModalOpen(false);
     setEditingMacro(null);
-    fetchData();
+    refreshMacros();
     showSuccess(isEditing ? 'Macro updated successfully.' : 'Macro created successfully.');
   };
 
@@ -237,7 +198,7 @@ export function AdminPanel() {
     if (confirm('Are you sure you want to delete this Macro?')) {
       await fetch(`/api/macros/${id}`, { method: 'DELETE' });
       if (selectedMacro?.id === id) setSelectedMacro(null);
-      fetchData();
+      refreshMacros();
       showSuccess('Macro deleted successfully.');
     }
   };
@@ -262,14 +223,14 @@ export function AdminPanel() {
 
     setIsCommandModalOpen(false);
     setEditingCommand(null);
-    fetchData();
+    refreshMacros();
     showSuccess(isEditing ? 'Command updated successfully.' : 'Command created successfully.');
   };
 
   const handleDeleteCommand = async (id: number) => {
     if (confirm('Are you sure you want to delete this Command?')) {
       await fetch(`/api/commands/${id}`, { method: 'DELETE' });
-      fetchData();
+      refreshMacros();
       showSuccess('Command deleted successfully.');
     }
   };

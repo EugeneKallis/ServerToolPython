@@ -19,6 +19,7 @@ export const metadata: Metadata = {
 
 import Navigation from "./components/Navigation";
 import { TerminalProvider } from "./context/TerminalContext";
+import { MacroProvider } from "./context/MacroContext";
 
 export default function RootLayout({
   children,
@@ -31,9 +32,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
       >
         <TerminalProvider>
-          <Navigation>
-            {children}
-          </Navigation>
+          <MacroProvider>
+            <Navigation>
+              {children}
+            </Navigation>
+          </MacroProvider>
         </TerminalProvider>
       </body>
     </html>

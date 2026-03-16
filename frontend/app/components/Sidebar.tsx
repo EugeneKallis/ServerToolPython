@@ -4,57 +4,13 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-interface Command {
-  id: number;
-  command: string;
-  ord: number;
-}
-
-interface Macro {
-  id: number;
-  name: string;
-  ord: number;
-  commands: Command[];
-}
-
-interface MacroGroup {
-  id: number;
-  name: string;
-  ord: number;
-  macros: Macro[];
-}
-
 import { useTerminal } from '../context/TerminalContext';
+import { useMacros } from '../context/MacroContext';
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const router = useRouter();
   const { addSystemLine } = useTerminal();
-  const [macroGroups, setMacroGroups] = useState<MacroGroup[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function fetchMacroGroups() {
-      try {
-        const response = await fetch('/api/macro-groups');
-        if (response.ok) {
-          const data = await response.json();
-          // Sort macro groups by ord
-          const sortedData = data.sort((a: MacroGroup, b: MacroGroup) => a.ord - b.ord);
-          // Sort macros within each group by ord
-          sortedData.forEach((group: MacroGroup) => {
-            group.macros.sort((a: Macro, b: Macro) => a.ord - b.ord);
-          });
-          setMacroGroups(sortedData);
-        }
-      } catch (error) {
-        console.error('Failed to fetch macro groups:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchMacroGroups();
-  }, []);
+  const { macroGroups, loading } = useMacros();
 
   return (
     <>

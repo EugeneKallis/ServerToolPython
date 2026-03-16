@@ -29,8 +29,10 @@ kind: Service
 metadata:
   name: backend
 spec:
+  type: {{ .Values.backend.service.type | default "ClusterIP" }}
   selector:
     app: {{ .Release.Name }}-backend
   ports:
   - port: {{ .Values.backend.service.port }}
     targetPort: {{ .Values.backend.service.port }}
+    nodePort: {{ .Values.backend.service.nodePort }}
