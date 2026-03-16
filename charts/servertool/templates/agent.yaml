@@ -24,7 +24,7 @@ spec:
         volumeMounts:
         - mountPath: {{ .Values.agent.containerMountPath }}
           name: host-mount
-          mountPropagation: Bidirectional
+          mountPropagation: HostToContainer
         - mountPath: /var/run/docker.sock
           name: docker-socket
       volumes:

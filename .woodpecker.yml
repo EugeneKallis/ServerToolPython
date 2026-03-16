@@ -15,10 +15,10 @@ steps:
       tags: latest
       dockerfile: backend/Dockerfile
       context: backend
-      username:
-        from_secret: docker_username
       password:
         from_secret: docker_password
+    when:
+      path: ["backend/**"]
 
   # 2. Build and push Frontend
   - name: publish-frontend
@@ -28,10 +28,10 @@ steps:
       tags: latest
       dockerfile: frontend/Dockerfile
       context: frontend
-      username:
-        from_secret: docker_username
       password:
         from_secret: docker_password
+    when:
+      path: ["frontend/**"]
 
   # 3. Build and push Agent
   - name: publish-agent
@@ -41,10 +41,10 @@ steps:
       tags: latest
       dockerfile: agent/Dockerfile
       context: agent
-      username:
-        from_secret: docker_username
       password:
         from_secret: docker_password
+    when:
+      path: ["agent/**"]
 
   # 4. Deploy using Helm to 192.168.1.201
   - name: deploy-helm
