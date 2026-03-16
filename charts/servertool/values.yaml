@@ -31,7 +31,8 @@ agent:
   image:
     repository: eugenekallis/servertoolpython-agent
     tag: "latest"
-  hostMountPath: "/" 
+  hostMountPath: "/mnt"
+  containerMountPath: "/mnt" 
 
 # Database Configuration
 postgres:

@@ -20,7 +20,7 @@ spec:
         - name: REDIS_URL
           value: "redis://redis:6379/0"
         volumeMounts:
-        - mountPath: /host-fs
+        - mountPath: {{ .Values.agent.containerMountPath }}
           name: host-mount
       volumes:
       - name: host-mount
