@@ -11,6 +11,8 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}-agent
+      annotations:
+        rollout.network.extension.pyserv.com/restartedAt: {{ now | quote }}
     spec:
       containers:
       - name: agent
