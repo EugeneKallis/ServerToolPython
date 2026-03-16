@@ -22,8 +22,14 @@ spec:
         volumeMounts:
         - mountPath: {{ .Values.agent.containerMountPath }}
           name: host-mount
+        - mountPath: /var/run/docker.sock
+          name: docker-socket
       volumes:
       - name: host-mount
         hostPath:
           path: {{ .Values.agent.hostMountPath }}
           type: DirectoryOrCreate
+      - name: docker-socket
+        hostPath:
+          path: /var/run/docker.sock
+          type: Socket
