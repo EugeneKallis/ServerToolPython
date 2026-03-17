@@ -45,12 +45,16 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=/api
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
 
   agent:
     build:
       context: ./agent
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./agent:/app
     environment:
       - REDIS_URL=redis://redis:6379/0
     depends_on:
