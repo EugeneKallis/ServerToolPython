@@ -8,7 +8,7 @@ run:
 	cd backend && ../$(PYTHON) -m uvicorn app.main:app --reload --port $(PORT)
 
 .PHONY: compose-dev
-compose-dev:
+dev:
 	docker compose up --build
 
 .PHONY: seed

@@ -32,16 +32,20 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        const prefix = data.command ? `[${data.command}]` : '[Agent]';
         
-        if (data.status === 'started' || data.status === 'completed') {
-           setLines(prev => [...prev, `${prefix} ${data.message}`]);
-        } else if (data.message) {
-          setLines(prev => [...prev, `${prefix} ${data.message}`]);
-        } else if (data.error) {
-          setLines(prev => [...prev, `${prefix} [Error] ${data.error}`]);
+        if (data.status === 'started') {
+           setLines(prev => [...prev, `[Running] ${data.command}`]);
+        } else if (data.status === 'completed') {
+           setLines(prev => [...prev, `[Finished] ${data.message}`]);
+        } else if (data.status === 'streaming') {
+           const message = data.message || data.error;
+           setLines(prev => [...prev, `  ${message}`]); // Indent streaming output
+        } else if (data.status === 'error') {
+           setLines(prev => [...prev, `[Error] ${data.error}`]);
+        } else if (data.status === 'reset') {
+           setLines(prev => [...prev, `[System] ${data.message}`]);
         } else {
-          setLines(prev => [...prev, `[MissingData] ${event.data}`]);
+           setLines(prev => [...prev, `[Agent] ${data.message || event.data}`]);
         }
       } catch {
         setLines(prev => [...prev, `[Raw] ${event.data}`]);

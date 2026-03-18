@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from ..database import get_session
-from ..models import Command
-from ..schemas import CommandCreate, CommandRead, CommandUpdate
+from ..models import Command, CommandArgument
+from ..schemas import CommandCreate, CommandRead, CommandUpdate, CommandArgumentCreate, CommandArgumentRead
 
 router = APIRouter(
     prefix="/commands",
@@ -55,3 +55,24 @@ def delete_command(id:int, session : Session = Depends(get_session)):
     session.delete(command)
     session.commit()
     return command
+# Add argument to command
+@router.post("/{id}/arguments", response_model=CommandArgumentRead)
+def add_command_argument(id: int, payload: CommandArgumentCreate, session: Session = Depends(get_session)):
+    command = session.get(Command, id)
+    if not command:
+        raise HTTPException(status_code=404, detail="Command not found")
+    arg = CommandArgument(**payload.model_dump(), command_id=id)
+    session.add(arg)
+    session.commit()
+    session.refresh(arg)
+    return arg
+
+# Delete argument
+@router.delete("/arguments/{arg_id}")
+def delete_command_argument(arg_id: int, session: Session = Depends(get_session)):
+    arg = session.get(CommandArgument, arg_id)
+    if not arg:
+        raise HTTPException(status_code=404, detail="Argument not found")
+    session.delete(arg)
+    session.commit()
+    return {"status": "success"}

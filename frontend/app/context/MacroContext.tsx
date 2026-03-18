@@ -2,20 +2,27 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-interface Command {
+export interface CommandArgument {
+  id: number;
+  arg_name: string;
+  arg_value: string;
+}
+
+export interface Command {
   id: number;
   command: string;
   ord: number;
+  arguments: CommandArgument[];
 }
 
-interface Macro {
+export interface Macro {
   id: number;
   name: string;
   ord: number;
   commands: Command[];
 }
 
-interface MacroGroup {
+export interface MacroGroup {
   id: number;
   name: string;
   ord: number;

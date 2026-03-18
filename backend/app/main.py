@@ -5,7 +5,7 @@ from datetime import datetime
 
 from .database import engine, wait_for_db
 from .models import Base
-from .routers import commands, macro_groups, macros
+from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent
 from .redis_client import get_redis_client
 
 from contextlib import asynccontextmanager
@@ -26,6 +26,9 @@ app = FastAPI(title="ServerToolPython API", lifespan=lifespan)
 app.include_router(commands.router)
 app.include_router(macros.router)
 app.include_router(macro_groups.router)
+app.include_router(arr_instances.router)
+app.include_router(script_runs.router)
+app.include_router(agent.router)
 
 @app.get("/")
 async def index(request: Request):

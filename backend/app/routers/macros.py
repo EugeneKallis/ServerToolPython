@@ -1,11 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
-from typing import List
+from typing import List, Optional
 
 from ..database import get_session
-from ..models import Macro
+from ..models import Macro, Command, CommandArgument
 from ..schemas import MacroCreate, MacroRead, MacroUpdate
+
+from pydantic import BaseModel
+class ExecuteMacroPayload(BaseModel):
+    selected_arguments: Optional[dict[str, List[int]]] = None # command_id (as string key) -> list of arg_ids
 
 router = APIRouter(
     prefix="/macros",
@@ -57,12 +61,17 @@ def delete_macro(id: int, session: Session = Depends(get_session)):
     return {"message": "Macro deleted"}
 
 @router.post("/{id}/execute")
-async def execute_macro(id: int, session: Session = Depends(get_session)):
+async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, session: Session = Depends(get_session)):
     import json
     import os
     import redis.asyncio as aioredis
     
-    macro = session.get(Macro, id)
+    macro = session.scalars(
+        select(Macro)
+        .where(Macro.id == id)
+        .options(selectinload(Macro.commands).selectinload(Command.arguments))
+    ).first()
+    
     if not macro:
         raise HTTPException(status_code=404, detail="Macro not found")
     
@@ -74,8 +83,20 @@ async def execute_macro(id: int, session: Session = Depends(get_session)):
     
     try:
         for cmd in commands:
-            payload = json.dumps({"command": cmd.command})
-            await r.publish("agent_commands", payload)
+            cmd_text = cmd.command
+            
+            # Append optional arguments if selected
+            if payload and payload.selected_arguments:
+                selected_ids = payload.selected_arguments.get(str(cmd.id), [])
+                for arg in cmd.arguments:
+                    if arg.id in selected_ids:
+                        cmd_text += f" {arg.arg_value}"
+            
+            payload_data = json.dumps({
+                "command": cmd_text.strip(),
+                "macro_name": macro.name
+            })
+            await r.publish("agent_commands", payload_data)
     finally:
         await r.close()
         

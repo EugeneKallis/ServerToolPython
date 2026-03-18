@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 
 interface ItemFormProps {
   title: string;
-  fields: { name: string; label: string; placeholder?: string; type?: string }[];
+  fields: { name: string; label: string; placeholder?: string; type?: string; options?: { label: string; value: string }[] }[];
   initialValues?: Record<string, string>;
   onSubmit: (values: Record<string, string>) => void;
   onCancel: () => void;
@@ -48,15 +48,30 @@ export function ItemForm({ title, fields, initialValues = {}, onSubmit, onCancel
               <label htmlFor={field.name} className="block text-sm font-medium text-zinc-300">
                 {field.label}
               </label>
-              <input
-                id={field.name}
-                type={field.type || "text"}
-                value={values[field.name]}
-                onChange={(e) => handleChange(field.name, e.target.value)}
-                placeholder={field.placeholder}
-                className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                required
-              />
+              {field.options ? (
+                <select
+                  id={field.name}
+                  value={values[field.name]}
+                  onChange={(e) => handleChange(field.name, e.target.value)}
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
+                >
+                  <option value="" disabled>Select…</option>
+                  {field.options.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id={field.name}
+                  type={field.type || "text"}
+                  value={values[field.name]}
+                  onChange={(e) => handleChange(field.name, e.target.value)}
+                  placeholder={field.placeholder}
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  required
+                />
+              )}
             </div>
           ))}
 

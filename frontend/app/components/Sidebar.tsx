@@ -5,12 +5,36 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { useTerminal } from '../context/TerminalContext';
-import { useMacros } from '../context/MacroContext';
+import { useMacros, MacroGroup, Macro } from '../context/MacroContext';
+import { MacroArgumentsModal } from './MacroArgumentsModal';
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const router = useRouter();
   const { addSystemLine } = useTerminal();
   const { macroGroups, loading } = useMacros();
+
+  const [confirmMacro, setConfirmMacro] = useState<Macro | null>(null);
+
+  const handleExecuteMacro = async (macro: Macro, selectedArgs?: Record<string, number[]>) => {
+    router.push('/');
+    onClose();
+    setConfirmMacro(null);
+
+    try {
+      const response = await fetch(`/api/macros/${macro.id}/execute`, { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selected_arguments: selectedArgs || {} })
+      });
+      if (response.ok) {
+        addSystemLine(`Triggering macro: ${macro.name}${selectedArgs ? ' (with optional arguments)' : ''}`);
+      } else {
+        addSystemLine(`Error: Failed to trigger macro ${macro.name}`);
+      }
+    } catch (err) {
+      addSystemLine(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  };
 
   return (
     <>
@@ -40,28 +64,17 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
           ) : (
             <>
               <div className="flex-1 space-y-6">
-                {macroGroups.map((group) => (
+                {macroGroups.map((group: MacroGroup) => (
                   <div key={group.id} className="space-y-2">
                     <h3 className="px-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
                       {group.name}
                     </h3>
                     <ul className="space-y-1">
-                      {group.macros.map((macro) => (
+                      {group.macros.map((macro: Macro) => (
                         <li key={macro.id}>
                           <button 
                             onClick={async () => {
-                              router.push('/');
-                              onClose();
-                              try {
-                                const response = await fetch(`/api/macros/${macro.id}/execute`, { method: 'POST' });
-                                if (response.ok) {
-                                  addSystemLine(`Triggering macro: ${macro.name}`);
-                                } else {
-                                  addSystemLine(`Error: Failed to trigger macro ${macro.name}`);
-                                }
-                              } catch (err) {
-                                addSystemLine(`Error: ${err instanceof Error ? err.message : String(err)}`);
-                              }
+                              setConfirmMacro(macro);
                             }}
                             className="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
                           >
@@ -88,12 +101,29 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                       Admin
                     </Link>
                   </li>
+                  <li>
+                    <Link
+                      href="/run-log"
+                      className="block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white"
+                      onClick={onClose}
+                    >
+                      Run Log
+                    </Link>
+                  </li>
                 </ul>
               </div>
             </>
           )}
         </nav>
       </aside>
+
+      {confirmMacro && (
+        <MacroArgumentsModal 
+          macro={confirmMacro} 
+          onConfirm={(args) => handleExecuteMacro(confirmMacro, args)} 
+          onCancel={() => setConfirmMacro(null)} 
+        />
+      )}
     </>
   );
 }

@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict
+from datetime import datetime
 from typing import Optional, List
 
 class CommandBase(BaseModel):
@@ -14,8 +15,20 @@ class CommandUpdate(BaseModel):
     command: Optional[str] = None
     macro_id: Optional[int] = None
 
+class CommandArgumentBase(BaseModel):
+    arg_name: str
+    arg_value: str
+
+class CommandArgumentCreate(CommandArgumentBase):
+    pass
+
+class CommandArgumentRead(CommandArgumentBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
 class CommandRead(CommandBase):
     id: int
+    arguments: List[CommandArgumentRead] = []
     model_config = ConfigDict(from_attributes=True)
 
 class MacroBase(BaseModel):
@@ -50,4 +63,36 @@ class MacroGroupUpdate(BaseModel):
 class MacroGroupRead(MacroGroupBase):
     id: int
     macros: List[MacroRead] = []
+    model_config = ConfigDict(from_attributes=True)
+
+class ArrInstanceBase(BaseModel):
+    name: str
+    type: str  # "radarr" or "sonarr"
+    url: str
+    api_key: str
+    enabled: bool = True
+
+class ArrInstanceCreate(ArrInstanceBase):
+    pass
+
+class ArrInstanceUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    url: Optional[str] = None
+    api_key: Optional[str] = None
+    enabled: Optional[bool] = None
+
+class ArrInstanceRead(ArrInstanceBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ScriptRunRead(BaseModel):
+    id: int
+    macro_name: str
+    started_at: datetime
+    finished_at: Optional[datetime] = None
+    duration_seconds: Optional[float] = None
+    success: Optional[bool] = None
+    output: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
