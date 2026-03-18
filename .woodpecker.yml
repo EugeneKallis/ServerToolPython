@@ -19,8 +19,6 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-    when:
-      path: ["backend/**", ".woodpecker.yml"]
 
   # 2. Build and push Frontend
   - name: publish-frontend
@@ -34,8 +32,6 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-    when:
-      path: ["frontend/**", ".woodpecker.yml"]
 
   # 3. Build and push Agent
   - name: publish-agent
@@ -49,8 +45,6 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-    when:
-      path: ["agent/**", ".woodpecker.yml"]
 
   # 4. Deploy using Helm to 192.168.1.201
   - name: deploy-helm
