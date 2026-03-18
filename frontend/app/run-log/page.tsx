@@ -38,6 +38,9 @@ export default function RunLogPage() {
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
+  const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+
   const fetchRuns = useCallback(async () => {
     setLoading(true);
     const url = filter ? `/api/script-runs?macro=${encodeURIComponent(filter)}` : '/api/script-runs';
@@ -59,6 +62,20 @@ export default function RunLogPage() {
       console.error('Failed to reset agent:', err);
     }
     setResetting(false);
+  };
+
+  const handleClearAll = async () => {
+    setClearing(true);
+    try {
+      const res = await fetch('/api/script-runs', { method: 'DELETE' });
+      if (res.ok) {
+        setConfirmClear(false);
+        setRuns([]);
+      }
+    } catch (err) {
+      console.error('Failed to clear runs:', err);
+    }
+    setClearing(false);
   };
 
   // Initial load + auto-refresh every 5s
@@ -98,6 +115,39 @@ export default function RunLogPage() {
                 </button>
                 <button
                   onClick={() => setConfirmReset(false)}
+                  className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+
+          {/* Clear Log */}
+          <div className="relative">
+            {!confirmClear ? (
+              <button
+                onClick={() => setConfirmClear(true)}
+                className="flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+                title="Clear all run history"
+              >
+                <XCircle size={14} />
+                Clear All
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                <button
+                  onClick={handleClearAll}
+                  disabled={clearing}
+                  className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20"
+                >
+                  {clearing ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
+                  Confirm Clear
+                </button>
+                <button
+                  onClick={() => setConfirmClear(false)}
                   className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
                 >
                   Cancel

@@ -64,6 +64,7 @@ def delete_macro(id: int, session: Session = Depends(get_session)):
 async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, session: Session = Depends(get_session)):
     import json
     import os
+    import uuid
     import redis.asyncio as aioredis
     
     macro = session.scalars(
@@ -81,6 +82,8 @@ async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, 
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
     r = aioredis.from_url(redis_url)
     
+    run_id = str(uuid.uuid4())
+    
     try:
         for cmd in commands:
             cmd_text = cmd.command
@@ -94,10 +97,11 @@ async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, 
             
             payload_data = json.dumps({
                 "command": cmd_text.strip(),
-                "macro_name": macro.name
+                "macro_name": macro.name,
+                "run_id": run_id
             })
             await r.publish("agent_commands", payload_data)
     finally:
         await r.close()
         
-    return {"status": "triggered", "command_count": len(commands)}
+    return {"status": "triggered", "command_count": len(commands), "run_id": run_id}

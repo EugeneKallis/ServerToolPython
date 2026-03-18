@@ -30,3 +30,12 @@ def get_script_run(run_id: int, db: Session = Depends(get_session)):
     if not run:
         raise HTTPException(status_code=404, detail="Run not found.")
     return run
+
+
+@router.delete("", status_code=204)
+@router.delete("/", status_code=204)
+def clear_script_runs(db: Session = Depends(get_session)):
+    """Deletes all script run records from the database."""
+    db.query(ScriptRun).delete()
+    db.commit()
+    return None

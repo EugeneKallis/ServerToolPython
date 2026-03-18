@@ -1,7 +1,6 @@
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from db import log_run
 
 # Directory to scan
 SCAN_DIR = "/mnt/debrid/media/special"
@@ -71,5 +70,4 @@ def main():
         print("SUCCESS: All links are healthy.")
 
 if __name__ == "__main__":
-    with log_run("broken_link_finder"):
-        main()
+    main()

@@ -81,6 +81,7 @@ class ScriptRun(Base):
     __tablename__ = "script_run"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    run_id: Mapped[str] = mapped_column(String, unique=True, index=True) # UUID for deduplication
     macro_name: Mapped[str] = mapped_column(String, index=True)
     started_at: Mapped[datetime] = mapped_column(DateTime)
     finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)

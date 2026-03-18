@@ -10,10 +10,12 @@ import redis.asyncio as aioredis
 from ..database import engine
 from ..models import MacroSchedule, Macro, Command
 
-scheduler = AsyncIOScheduler()
+SCHEDULER_TZ = os.getenv("TZ", "America/New_York")
+scheduler = AsyncIOScheduler(timezone=SCHEDULER_TZ)
 
 async def execute_macro_task(schedule_id: int):
     """Task executed by the scheduler to trigger a macro."""
+    import uuid
     with Session(engine) as session:
         schedule = session.scalars(
             select(MacroSchedule)
@@ -30,21 +32,20 @@ async def execute_macro_task(schedule_id: int):
         redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
         r = aioredis.from_url(redis_url)
         
+        run_id = str(uuid.uuid4())
+        
         try:
             for cmd in sorted(macro.commands, key=lambda c: c.ord):
                 cmd_text = cmd.command
                 
                 # Append selected arguments if any
                 if selected_args:
-                    # In scheduler case, we expect args to be command_id -> list of arg_values or similar
-                    # For simplicity, if stored as command_id -> list of arg_ids, we'd need to fetch them
-                    # But the description says "automatically converted to cron expressions", 
-                    # let's assume args is stored as a list of strings to append for now or handle appropriately.
                     pass
                 
                 payload_data = json.dumps({
                     "command": cmd_text.strip(),
-                    "macro_name": macro.name
+                    "macro_name": macro.name,
+                    "run_id": run_id
                 })
                 await r.publish("agent_commands", payload_data)
         finally:
@@ -61,7 +62,7 @@ def add_schedule_to_scheduler(schedule: MacroSchedule):
     if schedule.enabled:
         scheduler.add_job(
             execute_macro_task,
-            CronTrigger.from_crontab(schedule.cron_expression),
+            CronTrigger.from_crontab(schedule.cron_expression, timezone=SCHEDULER_TZ),
             args=[schedule.id],
             id=job_id,
             replace_existing=True

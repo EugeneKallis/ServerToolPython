@@ -160,6 +160,4 @@ def main():
     print("Done searching all instances.")
 
 if __name__ == "__main__":
-    from db import log_run
-    with log_run("arr_searcher"):
-        main()
+    main()
