@@ -74,6 +74,7 @@ async def run_log_listener():
             elif status in ("completed", "error", "reset"):
                 output_lines = _active_output.pop(run_id, [])
                 started_at = _active_started.get(run_id) # Don't pop yet as more commands might follow
+                is_last = data.get("is_last", True)
                 
                 finished_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 duration = (finished_at - started_at).total_seconds() if started_at else None
@@ -86,15 +87,22 @@ async def run_log_listener():
                         new_output = (run.output or "") + "\n".join(output_lines)
                         run.output = new_output
                         
-                        # Update status (if any command fails, the whole macro run is marked failed)
-                        if run.success is not False:
-                            run.success = success
+                        # Update status
+                        if status == "error":
+                            run.success = False
+                        elif status == "completed" and is_last:
+                            # Only set to True if no previous command in this macro failed
+                            if run.success is not False:
+                                run.success = True
                             
                         run.finished_at = finished_at
                         if started_at:
                             run.duration_seconds = round(duration, 2)
                         
                         db.commit()
+                
+                if is_last:
+                    _active_started.pop(run_id, None)
 
         except Exception as e:
             print(f"[run_log_listener] Error: {e}", flush=True)

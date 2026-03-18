@@ -33,14 +33,14 @@ class TaskManager:
 task_manager = TaskManager()
 
 
-async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_id: str):
-    # Notify backend that this command is starting — backend will write the ScriptRun row
+async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_id: str, is_last: bool = True):
     # Notify backend that this command is starting — backend will write the ScriptRun row
     await r.publish("agent_responses", json.dumps({
         "status": "started",
         "run_id": run_id,
         "command": command,
         "macro_name": macro_name,
+        "is_last": is_last,
         "message": "Starting execution..."
     }))
 
@@ -79,6 +79,7 @@ async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_
             "run_id": run_id,
             "command": command,
             "macro_name": macro_name,
+            "is_last": is_last,
             "message": f"Command finished with exit code {returncode}",
             "exit_code": returncode,
         }))
@@ -89,6 +90,7 @@ async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_
             "run_id": run_id,
             "command": command,
             "macro_name": macro_name,
+            "is_last": is_last,
             "error": f"Failed to execute command: {str(e)}"
         }))
     finally:
@@ -97,9 +99,9 @@ async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_
 
 async def command_worker(r: redis.Redis):
     while True:
-        command, macro_name, run_id = await task_manager.queue.get()
+        command, macro_name, run_id, is_last = await task_manager.queue.get()
         try:
-            await execute_and_stream(command, macro_name, r, run_id)
+            await execute_and_stream(command, macro_name, r, run_id, is_last)
         except Exception as e:
             print(f"Worker error: {e}")
         finally:
@@ -138,9 +140,10 @@ async def run_agent():
                 command = data.get("command")
                 macro_name = data.get("macro_name", "")
                 run_id = data.get("run_id") or str(uuid.uuid4())
+                is_last = data.get("is_last", True)
                 if command:
-                    print(f"Queuing command: {command} (macro: {macro_name}, run_id: {run_id})", flush=True)
-                    await task_manager.queue.put((command, macro_name, run_id))
+                    print(f"Queuing command: {command} (macro: {macro_name}, run_id: {run_id}, is_last: {is_last})", flush=True)
+                    await task_manager.queue.put((command, macro_name, run_id, is_last))
             except Exception as e:
                 print(f"Error processing message: {e}", flush=True)
 

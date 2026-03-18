@@ -85,8 +85,9 @@ async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, 
     run_id = str(uuid.uuid4())
     
     try:
-        for cmd in commands:
+        for idx, cmd in enumerate(commands):
             cmd_text = cmd.command
+            is_last = (idx == len(commands) - 1)
             
             # Append optional arguments if selected
             if payload and payload.selected_arguments:
@@ -98,7 +99,8 @@ async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, 
             payload_data = json.dumps({
                 "command": cmd_text.strip(),
                 "macro_name": macro.name,
-                "run_id": run_id
+                "run_id": run_id,
+                "is_last": is_last
             })
             await r.publish("agent_commands", payload_data)
     finally:

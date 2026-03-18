@@ -35,8 +35,10 @@ async def execute_macro_task(schedule_id: int):
         run_id = str(uuid.uuid4())
         
         try:
-            for cmd in sorted(macro.commands, key=lambda c: c.ord):
+            sorted_cmds = sorted(macro.commands, key=lambda c: c.ord)
+            for idx, cmd in enumerate(sorted_cmds):
                 cmd_text = cmd.command
+                is_last = (idx == len(sorted_cmds) - 1)
                 
                 # Append selected arguments if any
                 if selected_args:
@@ -45,7 +47,8 @@ async def execute_macro_task(schedule_id: int):
                 payload_data = json.dumps({
                     "command": cmd_text.strip(),
                     "macro_name": macro.name,
-                    "run_id": run_id
+                    "run_id": run_id,
+                    "is_last": is_last
                 })
                 await r.publish("agent_commands", payload_data)
         finally:
