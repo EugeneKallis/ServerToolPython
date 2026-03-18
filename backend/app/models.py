@@ -34,6 +34,9 @@ class Macro(Base):
     
     # Relationship back to MacroGroup
     macro_group: Mapped[Optional["MacroGroup"]] = relationship(back_populates="macros")
+
+    # Link from Macro to Schedules
+    schedules: Mapped[List["MacroSchedule"]] = relationship(back_populates="macro", cascade="all, delete-orphan")
     
     # Link from Macro to Commands
     commands: Mapped[List["Command"]] = relationship(back_populates="macro", cascade="all, delete-orphan")
@@ -84,3 +87,16 @@ class ScriptRun(Base):
     duration_seconds: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     success: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     output: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+class MacroSchedule(Base):
+    __tablename__ = "macro_schedule"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    macro_id: Mapped[int] = mapped_column(ForeignKey("macro.id"))
+    cron_expression: Mapped[str] = mapped_column(String) # e.g. "*/5 * * * *"
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    args: Mapped[Optional[str]] = mapped_column(Text, nullable=True) # JSON string of selected arguments
+
+    # Link back to Macro
+    macro: Mapped["Macro"] = relationship(back_populates="schedules")

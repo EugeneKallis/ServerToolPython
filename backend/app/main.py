@@ -5,8 +5,9 @@ from datetime import datetime
 
 from .database import engine, wait_for_db
 from .models import Base
-from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent
+from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent, schedules
 from .redis_client import get_redis_client
+from .utils.scheduler import start_scheduler, shutdown_scheduler
 
 from contextlib import asynccontextmanager
 
@@ -16,9 +17,13 @@ async def lifespan(app: FastAPI):
     if wait_for_db():
         # Create tables
         Base.metadata.create_all(engine)
+        # Start the scheduler
+        start_scheduler()
     else:
         print("Warning: Database was not ready. Tables were not created.")
     yield
+    # Shutdown the scheduler
+    shutdown_scheduler()
 
 app = FastAPI(title="ServerToolPython API", lifespan=lifespan)
 
@@ -29,6 +34,7 @@ app.include_router(macro_groups.router)
 app.include_router(arr_instances.router)
 app.include_router(script_runs.router)
 app.include_router(agent.router)
+app.include_router(schedules.router)
 
 @app.get("/")
 async def index(request: Request):

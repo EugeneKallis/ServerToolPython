@@ -96,3 +96,17 @@ class ScriptRunRead(BaseModel):
     success: Optional[bool] = None
     output: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
+
+class MacroScheduleBase(BaseModel):
+    name: str
+    macro_id: int
+    cron_expression: str
+    enabled: bool = True
+    args: Optional[str] = None
+
+class MacroScheduleCreate(MacroScheduleBase):
+    pass
+
+class MacroScheduleRead(MacroScheduleBase):
+    id: int
+    model_config = ConfigDict(from_attributes=True)
