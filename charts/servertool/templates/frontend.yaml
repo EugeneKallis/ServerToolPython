@@ -7,13 +7,13 @@ spec:
   selector:
     matchLabels:
       app: {{ .Release.Name }}-frontend
-   template:
-     metadata:
-       labels:
-         app: {{ .Release.Name }}-frontend
-       annotations:
-         rollout.network.extension.pyserv.com/restartedAt: {{ now | quote }}
-     spec:
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-frontend
+      annotations:
+        rollout.network.extension.pyserv.com/restartedAt: {{ now | quote }}
+    spec:
       containers:
       - name: frontend
         image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
