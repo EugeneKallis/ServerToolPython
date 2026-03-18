@@ -88,7 +88,9 @@ async def run_log_listener():
                         run.output = new_output
                         
                         # Update status
-                        if status == "error":
+                        exit_code = data.get("exit_code", 0)
+                        
+                        if status == "error" or exit_code != 0:
                             run.success = False
                         elif status == "completed" and is_last:
                             # Only set to True if no previous command in this macro failed
