@@ -74,13 +74,13 @@ steps:
       - git config user.email "woodpecker@cluster.lan"
       
       # Update tags in values.yaml
-      - sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/backend/values.yaml
-      - sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/frontend/values.yaml
-      - sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/agent/values.yaml
+      - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/backend/values.yaml'
+      - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/frontend/values.yaml'
+      - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/agent/values.yaml'
       
       # Commit and Push (Skip CI to prevent loops)
       - git add deploy/charts/
-      - git commit -m "chore: update image tags to ${CI_COMMIT_SHA:0:8} [skip ci]"
+      - 'git commit -m "chore: update image tags to ${CI_COMMIT_SHA:0:8} [skip ci]"'
       - git push origin main
 
 trigger:
