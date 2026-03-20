@@ -1,0 +1,6 @@
+postgres:
+  image: postgres:15
+  port: 5432
+redis:
+  image: redis:7
+  port: 6379

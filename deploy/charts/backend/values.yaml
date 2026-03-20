@@ -1,0 +1,7 @@
+replicaCount: 3
+image:
+  repository: eugenekallis/servertoolpython-backend
+  tag: "latest"
+service:
+  type: ClusterIP
+  port: 8080

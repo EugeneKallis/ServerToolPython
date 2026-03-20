@@ -1,0 +1,13 @@
+replicaCount: 3
+image:
+  repository: eugenekallis/servertoolpython-frontend
+  tag: "latest"
+service:
+  type: ClusterIP
+  port: 3000
+api_url: "/api"
+
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "servertool.cluster.lan"
