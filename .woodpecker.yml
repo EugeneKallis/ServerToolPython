@@ -12,7 +12,7 @@ steps:
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-backend
-      tags: latest
+      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: backend/Dockerfile
       context: backend
       cache: true
@@ -26,7 +26,7 @@ steps:
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-frontend
-      tags: latest
+      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: frontend/Dockerfile
       context: frontend
       cache: true
@@ -40,7 +40,7 @@ steps:
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-agent
-      tags: latest
+      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: agent/Dockerfile
       context: agent
       cache: true
@@ -50,19 +50,39 @@ steps:
         from_secret: docker_password
 
   # 4. Deploy using Helm to 192.168.1.201
-  - name: deploy-helm
-    image: pelotech/drone-helm3
-    settings:
-      api_server:
-        from_secret: k8s_server
-      kubernetes_token:
-        from_secret: k8s_token
-      skip_tls_verify: true
-      insecure: true
-      debug: true
-      chart: ./charts/servertool
-      release: prod-servertool
+  # - name: deploy-helm
+  #   image: pelotech/drone-helm3
+  #   settings:
+  #     api_server:
+  #       from_secret: k8s_server
+  #     kubernetes_token:
+  #       from_secret: k8s_token
+
+  # 4. Update Manifests in Git (GitOps)
+  - name: update-manifests
+    image: alpine/git
+    secrets: [ git_ssh_key ]
+    commands:
+      # Setup SSH for Git push
+      - mkdir -p ~/.ssh
+      - echo "$GIT_SSH_KEY" > ~/.ssh/id_rsa
+      - chmod 600 ~/.ssh/id_rsa
+      - ssh-keyscan github.com >> ~/.ssh/known_hosts
       
+      # Configure Git
+      - git config user.name "Woodpecker CI"
+      - git config user.email "woodpecker@cluster.lan"
+      
+      # Update tags in values.yaml
+      - sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/backend/values.yaml
+      - sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/frontend/values.yaml
+      - sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/agent/values.yaml
+      
+      # Commit and Push (Skip CI to prevent loops)
+      - git add deploy/charts/
+      - git commit -m "chore: update image tags to ${CI_COMMIT_SHA:0:8} [skip ci]"
+      - git push origin main
+
 trigger:
   branch:
     - main
