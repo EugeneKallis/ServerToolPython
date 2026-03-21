@@ -1,6 +1,6 @@
 replicaCount: 1
 image:
   repository: eugenekallis/servertoolpython-agent
-  tag: "latest"
+  tag: ff7a7439
 hostMountPath: "/mnt"
 containerMountPath: "/mnt"
