@@ -65,7 +65,7 @@ export default function Terminal({ className = '' }: TerminalProps) {
           <div className={`w-1.5 h-1.5 rounded-full ${status === 'connected' ? 'bg-emerald-500' : status === 'connecting' ? 'bg-amber-500 animate-pulse' : 'bg-red-500'}`}></div>
           Status: {status}
         </span>
-        <span>Environment: Development</span>
+        <span>Environment: {process.env.NEXT_PUBLIC_ENVIRONMENT || 'Local'} | Tag: {process.env.NEXT_PUBLIC_DOCKER_TAG || 'dev'}</span>
       </div>
     </div>
   );
