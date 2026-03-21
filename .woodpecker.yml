@@ -61,7 +61,9 @@ steps:
   # 4. Update Manifests in Git (GitOps)
   - name: update-manifests
     image: alpine/git
-    secrets: [ git_ssh_key ]
+    environment:
+      GIT_SSH_KEY:
+        from_secret: git_ssh_key
     commands:
       # Setup SSH for Git push
       - mkdir -p ~/.ssh
