@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `http://backend:8080/:path*`,
+        destination: `http://backend:8080/api/:path*`,
       },
       {
         source: '/ws/:path*',

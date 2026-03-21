@@ -2,7 +2,7 @@ import json
 import asyncio
 import os
 from datetime import datetime, timezone
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
 
 from .database import engine, wait_for_db
 from .models import Base, ScriptRun
@@ -129,14 +129,16 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ServerToolPython API", lifespan=lifespan)
 
-# Include routers
-app.include_router(commands.router)
-app.include_router(macros.router)
-app.include_router(macro_groups.router)
-app.include_router(arr_instances.router)
-app.include_router(script_runs.router)
-app.include_router(agent.router)
-app.include_router(schedules.router)
+api_router = APIRouter(prefix="/api")
+api_router.include_router(commands.router)
+api_router.include_router(macros.router)
+api_router.include_router(macro_groups.router)
+api_router.include_router(arr_instances.router)
+api_router.include_router(script_runs.router)
+api_router.include_router(agent.router)
+api_router.include_router(schedules.router)
+
+app.include_router(api_router)
 
 @app.get("/")
 async def index(request: Request):
