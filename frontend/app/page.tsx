@@ -1,5 +1,7 @@
 import Terminal from "./components/Terminal";
 
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   const env = process.env.APP_ENVIRONMENT || 'Local';
   const tag = process.env.APP_DOCKER_TAG || 'dev';
