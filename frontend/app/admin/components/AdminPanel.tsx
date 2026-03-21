@@ -349,17 +349,19 @@ export function AdminPanel() {
   const updateOrder = async (endpoint: string, items: { id: number | string }[]) => {
     try {
       await Promise.all(
-        items.map((item, index) =>
-          fetch(`/api/${endpoint}/${item.id}`, {
+        items.map(async (item, index) => {
+          const res = await fetch(`/api/${endpoint}/${item.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ord: index }),
-          })
-        )
+          });
+          if (!res.ok) throw new Error(res.statusText);
+        })
       );
       refreshMacros();
     } catch (err) {
       console.error('Failed to update order', err);
+      alert('Failed to update order');
     }
   };
 
@@ -402,11 +404,17 @@ export function AdminPanel() {
       ord: isEditing ? editingGroup.ord : groups.length 
     };
 
-    await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      alert(`Error: ${err.detail}`);
+      return;
+    }
 
     setIsGroupModalOpen(false);
     setEditingGroup(null);
@@ -416,7 +424,12 @@ export function AdminPanel() {
 
   const handleDeleteGroup = async (id: number) => {
     if (confirm('Are you sure you want to delete this Macro Group?')) {
-      await fetch(`/api/macro-groups/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/macro-groups/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        alert(`Error: ${err.detail}`);
+        return;
+      }
       if (selectedGroup?.id === id) setSelectedGroup(null);
       refreshMacros();
       showSuccess('Macro Group deleted successfully.');
@@ -435,11 +448,17 @@ export function AdminPanel() {
       ord: isEditing ? editingMacro.ord : selectedGroup.macros.length
     };
 
-    await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      alert(`Error: ${err.detail}`);
+      return;
+    }
 
     setIsMacroModalOpen(false);
     setEditingMacro(null);
@@ -449,7 +468,12 @@ export function AdminPanel() {
 
   const handleDeleteMacro = async (id: number) => {
     if (confirm('Are you sure you want to delete this Macro?')) {
-      await fetch(`/api/macros/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/macros/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        alert(`Error: ${err.detail}`);
+        return;
+      }
       if (selectedMacro?.id === id) setSelectedMacro(null);
       refreshMacros();
       showSuccess('Macro deleted successfully.');
@@ -468,11 +492,17 @@ export function AdminPanel() {
       ord: isEditing ? editingCommand.ord : selectedMacro.commands.length
     };
 
-    await fetch(url, {
+    const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      alert(`Error: ${err.detail}`);
+      return;
+    }
 
     setIsCommandModalOpen(false);
     setEditingCommand(null);
@@ -482,7 +512,12 @@ export function AdminPanel() {
 
   const handleDeleteCommand = async (id: number) => {
     if (confirm('Are you sure you want to delete this Command?')) {
-      await fetch(`/api/commands/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/commands/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }));
+        alert(`Error: ${err.detail}`);
+        return;
+      }
       refreshMacros();
       showSuccess('Command deleted successfully.');
     }
@@ -491,7 +526,7 @@ export function AdminPanel() {
   const handleSaveArgument = async (values: Record<string, string>) => {
     if (!addingArgToCommand) return;
     
-    await fetch(`/api/commands/${addingArgToCommand}/arguments`, {
+    const res = await fetch(`/api/commands/${addingArgToCommand}/arguments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -499,6 +534,12 @@ export function AdminPanel() {
         arg_value: values.arg_value,
       }),
     });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      alert(`Error: ${err.detail}`);
+      return;
+    }
 
     setIsArgModalOpen(false);
     setAddingArgToCommand(null);
@@ -508,7 +549,12 @@ export function AdminPanel() {
 
   const handleDeleteArgument = async (id: number) => {
     if (!confirm('Delete this optional argument?')) return;
-    await fetch(`/api/commands/arguments/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/commands/arguments/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      alert(`Error: ${err.detail}`);
+      return;
+    }
     refreshMacros();
     showSuccess('Argument deleted.');
   };
