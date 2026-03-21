@@ -13,7 +13,7 @@ steps:
       tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: frontend/Dockerfile
       context: frontend
-      cache: false
+      cache: true
       username:
         from_secret: docker_username
       password:
