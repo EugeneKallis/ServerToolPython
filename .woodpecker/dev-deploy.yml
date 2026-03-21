@@ -1,0 +1,78 @@
+pipeline:
+  build-frontend:
+    image: plugins/kaniko
+    settings:
+      repo: eugenekallis/servertoolpython-frontend
+      tags: dev-$CI_COMMIT_SHA
+      dockerfile: frontend/Dockerfile
+      context: frontend
+      cache: true
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+    when:
+      event: push
+      branch: [main, develop]
+
+  build-backend:
+    image: plugins/kaniko
+    settings:
+      repo: eugenekallis/servertoolpython-backend
+      tags: dev-$CI_COMMIT_SHA
+      dockerfile: backend/Dockerfile
+      context: backend
+      cache: true
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+    when:
+      event: push
+      branch: [main, develop]
+
+  build-agent:
+    image: plugins/kaniko
+    settings:
+      repo: eugenekallis/servertoolpython-agent
+      tags: dev-$CI_COMMIT_SHA
+      dockerfile: agent/Dockerfile
+      context: agent
+      cache: true
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+    when:
+      event: push
+      branch: [main, develop]
+
+  deploy-dev:
+    image: alpine:latest
+    commands:
+      - apk add --no-cache git yq openssh-client
+      - mkdir -p ~/.ssh
+      - echo "$GIT_SSH_KEY" > ~/.ssh/id_rsa
+      - chmod 600 ~/.ssh/id_rsa
+      - ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - git clone git@github.com:eugenekallis/kubernetes-cluster.git infra
+      - cd infra
+      - yq -i '.image.tag = "dev-'"$CI_COMMIT_SHA"'"' charts/servertool-python/frontend/values-dev.yaml
+      - yq -i '.image.tag = "dev-'"$CI_COMMIT_SHA"'"' charts/servertool-python/backend/values-dev.yaml
+      - yq -i '.image.tag = "dev-'"$CI_COMMIT_SHA"'"' charts/servertool-python/agent/values-dev.yaml
+      - git add .
+      - git config user.name "$GIT_USER_NAME"
+      - git config user.email "$GIT_USER_EMAIL"
+      - git commit -m "chore: deploy dev $CI_COMMIT_SHA"
+      - git push origin main
+    secrets:
+      - GIT_SSH_KEY
+      - GIT_USER_NAME
+      - GIT_USER_EMAIL
+    depends_on:
+      - build-frontend
+      - build-backend
+      - build-agent
+    when:
+      event: push
+      branch: [main, develop]
