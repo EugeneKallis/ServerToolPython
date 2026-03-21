@@ -10,7 +10,7 @@ steps:
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-frontend
-      tags: dev-$CI_COMMIT_SHA
+      tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: frontend/Dockerfile
       context: frontend
       cache: true
@@ -23,7 +23,7 @@ steps:
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-backend
-      tags: dev-$CI_COMMIT_SHA
+      tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: backend/Dockerfile
       context: backend
       cache: true
@@ -36,7 +36,7 @@ steps:
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-agent
-      tags: dev-$CI_COMMIT_SHA
+      tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: agent/Dockerfile
       context: agent
       cache: true
@@ -55,13 +55,13 @@ steps:
       - ssh-keyscan github.com >> ~/.ssh/known_hosts
       - git clone git@github.com:eugenekallis/kubernetes-cluster.git infra
       - cd infra
-      - 'yq -i ".image.tag = \"dev-$CI_COMMIT_SHA\"" charts/servertool-python/frontend/values-dev.yaml'
-      - 'yq -i ".image.tag = \"dev-$CI_COMMIT_SHA\"" charts/servertool-python/backend/values-dev.yaml'
-      - 'yq -i ".image.tag = \"dev-$CI_COMMIT_SHA\"" charts/servertool-python/agent/values-dev.yaml'
+      - 'yq -i ".image.tag = \"dev-${CI_COMMIT_SHA:0:8}\"" charts/servertool-python/frontend/values-dev.yaml'
+      - 'yq -i ".image.tag = \"dev-${CI_COMMIT_SHA:0:8}\"" charts/servertool-python/backend/values-dev.yaml'
+      - 'yq -i ".image.tag = \"dev-${CI_COMMIT_SHA:0:8}\"" charts/servertool-python/agent/values-dev.yaml'
       - git add .
       - git config user.name "Woodpecker CI"
       - git config user.email "woodpecker@cluster.lan"
-      - 'git commit -m "chore: deploy dev $CI_COMMIT_SHA"'
+      - 'git commit -m "chore: deploy dev ${CI_COMMIT_SHA:0:8}"'
       - git push origin main
     environment:
       GIT_SSH_KEY:
