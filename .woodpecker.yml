@@ -4,8 +4,7 @@ name: deploy-servertool
 
 labels:
   type: builder
-  
-  
+
 steps:
   # 1. Build and push Backend
   - name: publish-backend
@@ -59,35 +58,35 @@ steps:
   #       from_secret: k8s_token
 
   # 4. Update Manifests in Git (GitOps)
-  - name: update-manifests
-    image: alpine/git
-    environment:
-      GIT_SSH_KEY:
-        from_secret: git_ssh_key
-    commands:
-      # Setup SSH for Git push
-      - mkdir -p ~/.ssh
-      - echo "$GIT_SSH_KEY" > ~/.ssh/id_rsa
-      - chmod 600 ~/.ssh/id_rsa
-      - ssh-keyscan github.com >> ~/.ssh/known_hosts
-      
-      # Configure Git
-      - git config user.name "Woodpecker CI"
-      - git config user.email "woodpecker@cluster.lan"
-      - git remote set-url origin git@github.com:EugeneKallis/ServerToolPython.git
-      
-      # Update tags in values.yaml
-      - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/backend/values.yaml'
-      - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/frontend/values.yaml'
-      - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/agent/values.yaml'
-      
-      # Commit and Push (Skip CI to prevent loops)
-      - git add deploy/charts/
-      - 'git commit -m "chore: update image tags to ${CI_COMMIT_SHA:0:8} [skip ci]"'
-      - git push origin main
+#   - name: update-manifests
+#     image: alpine/git
+#     environment:
+#       GIT_SSH_KEY:
+#         from_secret: git_ssh_key
+#     commands:
+#       # Setup SSH for Git push
+#       - mkdir -p ~/.ssh
+#       - echo "$GIT_SSH_KEY" > ~/.ssh/id_rsa
+#       - chmod 600 ~/.ssh/id_rsa
+#       - ssh-keyscan github.com >> ~/.ssh/known_hosts
 
-trigger:
-  branch:
-    - main
-  event:
-    - push
+#       # Configure Git
+#       - git config user.name "Woodpecker CI"
+#       - git config user.email "woodpecker@cluster.lan"
+#       - git remote set-url origin git@github.com:EugeneKallis/ServerToolPython.git
+
+#       # Update tags in values.yaml
+#       - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/backend/values.yaml'
+#       - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/frontend/values.yaml'
+#       - 'sed -i "s/tag: .*/tag: ${CI_COMMIT_SHA:0:8}/" deploy/charts/agent/values.yaml'
+
+#       # Commit and Push (Skip CI to prevent loops)
+#       - git add deploy/charts/
+#       - 'git commit -m "chore: update image tags to ${CI_COMMIT_SHA:0:8} [skip ci]"'
+#       - git push origin main
+
+# trigger:
+#   branch:
+#     - main
+#   event:
+#     - push
