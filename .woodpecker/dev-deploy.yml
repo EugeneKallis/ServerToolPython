@@ -1,5 +1,12 @@
-pipeline:
-  build-frontend:
+kind: pipeline
+type: docker
+name: dev-deploy
+
+labels:
+  type: builder
+
+steps:
+  - name: build-frontend
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-frontend
@@ -11,11 +18,8 @@ pipeline:
         from_secret: docker_username
       password:
         from_secret: docker_password
-    when:
-      event: push
-      branch: [main, develop]
 
-  build-backend:
+  - name: build-backend
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-backend
@@ -27,11 +31,8 @@ pipeline:
         from_secret: docker_username
       password:
         from_secret: docker_password
-    when:
-      event: push
-      branch: [main, develop]
 
-  build-agent:
+  - name: build-agent
     image: plugins/kaniko
     settings:
       repo: eugenekallis/servertoolpython-agent
@@ -43,11 +44,8 @@ pipeline:
         from_secret: docker_username
       password:
         from_secret: docker_password
-    when:
-      event: push
-      branch: [main, develop]
 
-  deploy-dev:
+  - name: deploy-dev
     image: alpine:latest
     commands:
       - apk add --no-cache git yq openssh-client
@@ -65,14 +63,21 @@ pipeline:
       - git config user.email "$GIT_USER_EMAIL"
       - git commit -m "chore: deploy dev $CI_COMMIT_SHA"
       - git push origin main
-    secrets:
-      - GIT_SSH_KEY
-      - GIT_USER_NAME
-      - GIT_USER_EMAIL
+    environment:
+      GIT_SSH_KEY:
+        from_secret: git_ssh_key
+      GIT_USER_NAME:
+        from_secret: git_user_name
+      GIT_USER_EMAIL:
+        from_secret: git_user_email
     depends_on:
       - build-frontend
       - build-backend
       - build-agent
-    when:
-      event: push
-      branch: [main, develop]
+
+trigger:
+  branch:
+    - main
+    - develop
+  event:
+    - push
