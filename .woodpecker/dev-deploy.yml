@@ -55,13 +55,13 @@ steps:
       - ssh-keyscan github.com >> ~/.ssh/known_hosts
       - git clone git@github.com:eugenekallis/kubernetes-cluster.git infra
       - cd infra
-      - yq -i '.image.tag = "dev-'"$CI_COMMIT_SHA"'"' charts/servertool-python/frontend/values-dev.yaml
-      - yq -i '.image.tag = "dev-'"$CI_COMMIT_SHA"'"' charts/servertool-python/backend/values-dev.yaml
-      - yq -i '.image.tag = "dev-'"$CI_COMMIT_SHA"'"' charts/servertool-python/agent/values-dev.yaml
+      - 'yq -i ".image.tag = \"dev-$CI_COMMIT_SHA\"" charts/servertool-python/frontend/values-dev.yaml'
+      - 'yq -i ".image.tag = \"dev-$CI_COMMIT_SHA\"" charts/servertool-python/backend/values-dev.yaml'
+      - 'yq -i ".image.tag = \"dev-$CI_COMMIT_SHA\"" charts/servertool-python/agent/values-dev.yaml'
       - git add .
       - git config user.name "$GIT_USER_NAME"
       - git config user.email "$GIT_USER_EMAIL"
-      - git commit -m "chore: deploy dev $CI_COMMIT_SHA"
+      - 'git commit -m "chore: deploy dev $CI_COMMIT_SHA"'
       - git push origin main
     environment:
       GIT_SSH_KEY:
