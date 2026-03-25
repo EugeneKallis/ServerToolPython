@@ -1,6 +1,6 @@
 kind: pipeline
 type: docker
-name: deploy-servertool
+name: prod-deploy
 
 labels:
   type: builder
@@ -47,6 +47,31 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
+
+  # 4. Deploy to Production
+  - name: deploy-prod
+    image: alpine:latest
+    commands:
+      - apk add --no-cache git yq openssh-client
+      - mkdir -p ~/.ssh
+      - echo "$GIT_SSH_KEY" > ~/.ssh/id_rsa
+      - chmod 600 ~/.ssh/id_rsa
+      - ssh-keyscan github.com >> ~/.ssh/known_hosts
+      - git clone git@github.com:eugenekallis/kubernetes-cluster.git infra
+      - cd infra
+      - 'yq -i ".global.image.tag = \"${CI_COMMIT_SHA:0:8}\"" charts/servertool-python/values-prod.yaml'
+      - git add .
+      - git config user.name "Woodpecker CI"
+      - git config user.email "woodpecker@cluster.lan"
+      - 'git commit -m "chore: deploy prod ${CI_COMMIT_SHA:0:8}"'
+      - git push origin main
+    environment:
+      GIT_SSH_KEY:
+        from_secret: git_ssh_key
+    depends_on:
+      - publish-backend
+      - publish-frontend
+      - publish-agent
 
 trigger:
   branch:

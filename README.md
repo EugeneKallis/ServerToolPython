@@ -47,8 +47,8 @@ docker-compose up --build
 This project has been heavily configured to deploy automatically to a Kubernetes cluster via a unified Helm chart using Woodpecker CI (`.woodpecker.yml`). 
 
 ### Helm Configuration
-All application microservices (Frontend, Backend, Agent, Redis, Postgres) are bundled into a single Helm Chart located in `charts/servertool/`.
-Global parameters such as image variants and replica counts are defined centrally in `charts/servertool/values.yaml`. 
+All application microservices (Frontend, Backend, Agent, Redis, Postgres) are bundled into a single Helm Chart located in the `kubernetes-cluster` repository at `charts/servertool-python/`.
+Global parameters such as image variants and replica counts are defined centrally in `charts/servertool-python/values-dev.yaml` and `charts/servertool-python/values-prod.yaml`. 
 
 You can use the built-in Makefile targets to interact with Helm locally:
 - `make helm-deploy` - Upgrades or installs the cluster.

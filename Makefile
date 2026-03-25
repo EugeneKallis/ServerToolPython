@@ -62,7 +62,7 @@ push-all: push-backend push-frontend push-agent
 
 .PHONY: helm-deploy
 helm-deploy:
-	helm upgrade --install servertool ./charts/servertool
+	helm upgrade --install servertool ../kubernetes-cluster/charts/servertool-python
 
 .PHONY: helm-uninstall
 helm-uninstall:
@@ -70,11 +70,11 @@ helm-uninstall:
 
 .PHONY: helm-template
 helm-template:
-	helm template servertool ./charts/servertool
+	helm template servertool ../kubernetes-cluster/charts/servertool-python
 
 .PHONY: helm-lint
 helm-lint:
-	helm lint ./charts/servertool
+	helm lint ../kubernetes-cluster/charts/servertool-python
 
 .PHONY: migration
 migration:
