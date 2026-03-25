@@ -70,7 +70,7 @@ steps:
       - build-agent
 
 trigger:
-  branch:
-    - develop
-  event:
-    - push
+  event: [ push, manual ]
+  branch: 
+    include: [ develop ]
+    exclude: [ main ]

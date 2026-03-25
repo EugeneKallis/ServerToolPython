@@ -74,7 +74,7 @@ steps:
       - publish-agent
 
 trigger:
-  branch:
-    - main
-  event:
-    - push
+  event: [ push, manual ]
+  branch: 
+    include: [ main ]
+    exclude: [ develop ]
