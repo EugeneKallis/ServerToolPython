@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import Terminal from "./components/Terminal";
 
+export const metadata: Metadata = { title: "Terminal" };
 export const dynamic = 'force-dynamic';
 
 export default function Home() {
