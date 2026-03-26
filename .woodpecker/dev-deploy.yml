@@ -65,7 +65,7 @@ steps:
       - echo "$GIT_SSH_KEY" > ~/.ssh/id_rsa
       - chmod 600 ~/.ssh/id_rsa
       - ssh-keyscan github.com >> ~/.ssh/known_hosts
-      - git clone git@github.com:eugenekallis/kubernetes-cluster.git infra
+      - git clone git@github.com:EugeneKallis/kubernetes-cluster.git infra
       - cd infra
       - 'yq -i ".global.image.tag = \"dev-${CI_COMMIT_SHA:0:8}\"" charts/servertool-python/values-dev.yaml'
       - git add .
