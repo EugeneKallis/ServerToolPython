@@ -17,6 +17,7 @@ steps:
       dockerfile: frontend/Dockerfile
       context: frontend
       cache: true
+      cache_repo: eugenekallis/servertoolpython-frontend-cache
       username:
         from_secret: docker_username
       password:
