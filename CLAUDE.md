@@ -106,3 +106,14 @@ Macro → ScriptRun
 ## CI/CD
 
 Woodpecker CI pipelines are in `.woodpecker/`. Dev and prod deployments are separate pipelines that build Docker images and deploy via Helm to Kubernetes.
+
+### Woodpecker Build Caching
+
+All image builds use `plugins/docker` with `daemon_off: true` to connect to the host Docker daemon via socket instead of running Docker-in-Docker. This gives access to the persistent host layer cache and cuts build times significantly (frontend ~1 min faster).
+
+Required Woodpecker agent config:
+- Volume: `/var/run/docker.sock:/var/run/docker.sock`
+- Env: `WOODPECKER_BACKEND_DOCKER_VOLUMES=/var/run/docker.sock:/var/run/docker.sock`
+- Env: `WOODPECKER_PLUGINS_PRIVILEGED=plugins/docker`
+
+If build times regress, verify these are set and the agent has been restarted.
