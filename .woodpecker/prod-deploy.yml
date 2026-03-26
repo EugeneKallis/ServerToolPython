@@ -84,9 +84,3 @@ steps:
       - publish-backend
       - publish-frontend
       - publish-agent
-
-trigger:
-  event:
-    include: [ push, manual ]
-  branch:
-    include: [ main ]

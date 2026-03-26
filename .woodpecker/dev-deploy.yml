@@ -80,9 +80,3 @@ steps:
       - build-frontend
       - build-backend
       - build-agent
-
-trigger:
-  event:
-    include: [ push, manual ]
-  branch:
-    include: [ develop ]
