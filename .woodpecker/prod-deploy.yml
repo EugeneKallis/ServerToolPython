@@ -9,6 +9,9 @@ steps:
   # 1. Build and push Backend
   - name: publish-backend
     image: plugins/kaniko
+    when:
+      branch: main
+      event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-backend
       tags: ${CI_COMMIT_SHA:0:8}
@@ -23,6 +26,9 @@ steps:
   # 2. Build and push Frontend
   - name: publish-frontend
     image: plugins/kaniko
+    when:
+      branch: main
+      event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-frontend
       tags: ${CI_COMMIT_SHA:0:8}
@@ -37,6 +43,9 @@ steps:
   # 3. Build and push Agent
   - name: publish-agent
     image: plugins/kaniko
+    when:
+      branch: main
+      event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-agent
       tags: ${CI_COMMIT_SHA:0:8}
@@ -51,6 +60,9 @@ steps:
   # 4. Deploy to Production
   - name: deploy-prod
     image: alpine:latest
+    when:
+      branch: main
+      event: [ push, manual ]
     commands:
       - apk add --no-cache git yq openssh-client
       - mkdir -p ~/.ssh
