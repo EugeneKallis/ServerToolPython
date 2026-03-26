@@ -27,7 +27,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
         body: JSON.stringify({ selected_arguments: selectedArgs || {} }),
       });
       if (response.ok) {
-        addSystemLine(`Triggering macro: ${macro.name}${selectedArgs ? " (with optional arguments)" : ""}`);
+        addSystemLine(`▶ ${macro.name}`);
       } else {
         addSystemLine(`Error: Failed to trigger macro ${macro.name}`);
       }

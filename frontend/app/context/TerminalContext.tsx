@@ -34,12 +34,14 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
         const data = JSON.parse(event.data);
         
         if (data.status === 'started') {
-           setLines(prev => [...prev, `[Running] ${data.command}`]);
+           setLines(prev => [...prev, `$ ${data.command}`]);
         } else if (data.status === 'completed') {
-           setLines(prev => [...prev, `[Finished] ${data.message}`]);
+           if (data.exit_code !== 0) {
+             setLines(prev => [...prev, `✗ exit ${data.exit_code}`]);
+           }
         } else if (data.status === 'streaming') {
            const message = data.message || data.error;
-           setLines(prev => [...prev, `  ${message}`]); // Indent streaming output
+           setLines(prev => [...prev, message]);
         } else if (data.status === 'error') {
            setLines(prev => [...prev, `[Error] ${data.error}`]);
         } else if (data.status === 'reset') {

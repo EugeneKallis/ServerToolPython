@@ -88,7 +88,7 @@ export default function RunLogPage() {
   const macroNames = [...new Set(runs.map((r: ScriptRun) => r.macro_name))].sort();
 
   return (
-    <div className="flex min-h-[calc(100vh-1rem)] flex-col p-6 text-zinc-100">
+    <div className="flex w-full min-h-[calc(100vh-1rem)] flex-col p-6 text-zinc-100">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Run Log</h1>
         <div className="flex items-center gap-3">
