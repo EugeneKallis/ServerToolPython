@@ -3,9 +3,7 @@ import Terminal from "./components/Terminal";
 
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata(): Promise<Metadata> {
-  return { title: "Terminal" };
-}
+export const metadata: Metadata = { title: { absolute: "ServerTool - Terminal" } };
 
 export default function Home() {
   const env = process.env.APP_ENVIRONMENT || 'Local';
