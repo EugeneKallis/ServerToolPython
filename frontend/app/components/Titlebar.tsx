@@ -14,9 +14,6 @@ export default function Titlebar({ onToggleSidebar }: { onToggleSidebar: () => v
         >
           <Menu className="h-6 w-6" />
         </button>
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white lg:text-2xl">
-          Dashboard
-        </h1>
       </div>
       
       <div className="flex items-center gap-4">
