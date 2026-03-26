@@ -1,12 +1,15 @@
 version: '3.8'
 
+env_file:
+  - .env
+
 services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -24,8 +27,8 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - TZ=America/New_York
@@ -60,8 +63,8 @@ services:
       # - /mnt:/mnt:rshared
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - redis
       - db

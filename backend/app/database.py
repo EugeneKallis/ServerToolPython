@@ -3,8 +3,7 @@ import time
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 
-# Get database URL from environment variable, default to SQLite for local development if needed
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/postgres")
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 # Engine for PostgreSQL
 engine = create_engine(DATABASE_URL)
