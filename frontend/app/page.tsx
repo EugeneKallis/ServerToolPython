@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Terminal from "./components/Terminal";
 
-export const metadata: Metadata = { title: "Terminal" };
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: "Terminal" };
+}
 
 export default function Home() {
   const env = process.env.APP_ENVIRONMENT || 'Local';
