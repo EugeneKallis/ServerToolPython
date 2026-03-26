@@ -416,10 +416,15 @@ export function AdminPanel() {
       return;
     }
 
+    const saved = await res.json();
     setIsGroupModalOpen(false);
     setEditingGroup(null);
-    refreshMacros();
+    await refreshMacros();
     showSuccess(isEditing ? 'Macro Group updated successfully.' : 'Macro Group created successfully.');
+    if (!isEditing) {
+      setSelectedGroup({ ...saved, macros: [] });
+      setView('macros');
+    }
   };
 
   const handleDeleteGroup = async (id: number) => {
@@ -460,10 +465,15 @@ export function AdminPanel() {
       return;
     }
 
+    const saved = await res.json();
     setIsMacroModalOpen(false);
     setEditingMacro(null);
-    refreshMacros();
+    await refreshMacros();
     showSuccess(isEditing ? 'Macro updated successfully.' : 'Macro created successfully.');
+    if (!isEditing) {
+      setSelectedMacro({ ...saved, commands: [] });
+      setView('commands');
+    }
   };
 
   const handleDeleteMacro = async (id: number) => {
