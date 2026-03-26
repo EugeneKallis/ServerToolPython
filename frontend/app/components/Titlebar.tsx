@@ -15,11 +15,7 @@ export default function Titlebar({ onToggleSidebar }: { onToggleSidebar: () => v
           <Menu className="h-6 w-6" />
         </button>
       </div>
-      
-      <div className="flex items-center gap-4">
-        {/* Placeholder for future actions like user profile or notifications */}
-        <div className="h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800"></div>
-      </div>
+
     </header>
   );
 }
