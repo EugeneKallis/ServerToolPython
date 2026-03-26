@@ -89,12 +89,14 @@ async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, 
             cmd_text = cmd.command
             is_last = (idx == len(commands) - 1)
             
-            # Append optional arguments if selected
+            # Append optional arguments if selected — values are shell-quoted
+            # to prevent injection via argument content
             if payload and payload.selected_arguments:
+                import shlex
                 selected_ids = payload.selected_arguments.get(str(cmd.id), [])
                 for arg in cmd.arguments:
                     if arg.id in selected_ids:
-                        cmd_text += f" {arg.arg_value}"
+                        cmd_text += f" {shlex.quote(arg.arg_value)}"
             
             payload_data = json.dumps({
                 "command": cmd_text.strip(),
