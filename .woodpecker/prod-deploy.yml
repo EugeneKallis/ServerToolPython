@@ -75,6 +75,4 @@ steps:
 
 trigger:
   event: [ push, manual ]
-  branch: 
-    include: [ main ]
-    exclude: [ develop ]
+  branch: [ main ]
