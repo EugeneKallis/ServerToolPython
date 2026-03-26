@@ -16,6 +16,7 @@ steps:
       tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: frontend/Dockerfile
       context: frontend
+      daemon_off: true
       username:
         from_secret: docker_username
       password:
@@ -31,6 +32,7 @@ steps:
       tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: backend/Dockerfile
       context: backend
+      daemon_off: true
       username:
         from_secret: docker_username
       password:
@@ -46,6 +48,7 @@ steps:
       tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: agent/Dockerfile
       context: agent
+      daemon_off: true
       username:
         from_secret: docker_username
       password:
