@@ -57,10 +57,10 @@ services:
     build:
       context: ./agent
       dockerfile: Dockerfile.dev
-    privileged: true
     volumes:
       - ./agent:/app
       # - /mnt:/mnt:rshared
+      # Docker socket allows macros to run docker commands — remove if not needed
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - REDIS_URL=${REDIS_URL}
