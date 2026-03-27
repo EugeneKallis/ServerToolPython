@@ -1,5 +1,6 @@
 import asyncio
 import os
+import signal
 import redis.asyncio as redis
 import json
 import uuid
@@ -14,7 +15,8 @@ class TaskManager:
         if self.current_process:
             print("Killing current task...", flush=True)
             try:
-                self.current_process.kill()
+                pgid = os.getpgid(self.current_process.pid)
+                os.killpg(pgid, signal.SIGKILL)
                 await self.current_process.wait()
             except Exception as e:
                 print(f"Error killing process: {e}", flush=True)
@@ -49,6 +51,7 @@ async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_
             command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            start_new_session=True,
         )
         task_manager.current_process = process
 

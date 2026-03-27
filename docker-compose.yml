@@ -26,6 +26,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
+      - OLLAMA_HOST=${OLLAMA_HOST}
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - TZ=America/New_York

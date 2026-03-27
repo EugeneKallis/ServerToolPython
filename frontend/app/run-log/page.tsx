@@ -106,7 +106,7 @@ export default function RunLogPage() {
                 <button
                   onClick={handleReset}
                   disabled={resetting}
-                  className="flex items-center gap-1.5 bg-error px-3 py-1.5 text-xs font-mono font-semibold text-on-error hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-1.5 bg-error-container px-3 py-1.5 text-xs font-mono font-semibold text-on-error-container hover:opacity-80 transition-opacity"
                 >
                   {resetting ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
                   Confirm Kill
@@ -139,7 +139,7 @@ export default function RunLogPage() {
                 <button
                   onClick={handleClearAll}
                   disabled={clearing}
-                  className="flex items-center gap-1.5 bg-error px-3 py-1.5 text-xs font-mono font-semibold text-on-error hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-1.5 bg-error-container px-3 py-1.5 text-xs font-mono font-semibold text-on-error-container hover:opacity-80 transition-opacity"
                 >
                   {clearing ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
                   Confirm Clear
