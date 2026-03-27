@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus, ChevronLeft, CheckCircle2, Pencil, Trash2, MessageSquare } from 'lucide-react';
+import { Plus, ChevronLeft, CheckCircle2, Pencil, Trash2, MessageSquare, Upload, Download, Copy, Check } from 'lucide-react';
 import { SortableListItem } from './SortableListItem';
 import { ItemForm } from './ItemForm';
 import { useMacros } from '../../context/MacroContext';
@@ -395,6 +395,13 @@ export function AdminPanel() {
   const [view, setView] = useState<'groups' | 'macros' | 'commands'>('groups');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Export / Import modal
+  const [ioModal, setIoModal] = useState<'export' | 'import' | null>(null);
+  const [ioJson, setIoJson] = useState('');
+  const [ioCopied, setIoCopied] = useState(false);
+  const [ioImporting, setIoImporting] = useState(false);
+  const [ioConfirm, setIoConfirm] = useState(false);
+
   const showSuccess = (msg: string) => {
     setSuccessMessage(msg);
     setTimeout(() => setSuccessMessage(null), 3000);
@@ -646,6 +653,62 @@ export function AdminPanel() {
     showSuccess('Argument deleted.');
   };
 
+  const openExport = async () => {
+    const res = await fetch('/api/macro-groups');
+    if (!res.ok) return;
+    const data = await res.json();
+    // Strip server-side ids, keep only portable fields
+    const portable = data.map((g: MacroGroup) => ({
+      name: g.name, ord: g.ord,
+      macros: g.macros.map((m: Macro) => ({
+        name: m.name, ord: m.ord,
+        commands: m.commands.map((c: Command) => ({
+          command: c.command, ord: c.ord,
+          arguments: c.arguments.map((a: CommandArgument) => ({ arg_name: a.arg_name, arg_value: a.arg_value })),
+        })),
+      })),
+    }));
+    setIoJson(JSON.stringify({ groups: portable }, null, 2));
+    setIoModal('export');
+  };
+
+  const openImport = () => {
+    setIoJson('');
+    setIoConfirm(false);
+    setIoModal('import');
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(ioJson);
+    setIoCopied(true);
+    setTimeout(() => setIoCopied(false), 2000);
+  };
+
+  const handleImport = async () => {
+    setIoImporting(true);
+    try {
+      const parsed = JSON.parse(ioJson);
+      const res = await fetch('/api/macro-groups/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(`Import failed: ${err.detail ?? res.statusText}`);
+        return;
+      }
+      await refreshMacros();
+      setIoModal(null);
+      showSuccess('Macro groups imported successfully.');
+    } catch {
+      alert('Invalid JSON — please check your input.');
+    } finally {
+      setIoImporting(false);
+      setIoConfirm(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full gap-4 p-4">
 
@@ -685,12 +748,26 @@ export function AdminPanel() {
             <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex flex-col h-full">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline">Macro Groups</h2>
-                <button
-                  onClick={() => { setEditingGroup(null); setIsGroupModalOpen(true); }}
-                  className="flex items-center text-xs font-mono text-primary-fixed hover:text-primary-container bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
-                >
-                  <Plus size={14} className="mr-1" /> Add Group
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={openExport}
+                    className="flex items-center gap-1 text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
+                  >
+                    <Download size={13} /> Export
+                  </button>
+                  <button
+                    onClick={openImport}
+                    className="flex items-center gap-1 text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
+                  >
+                    <Upload size={13} /> Import
+                  </button>
+                  <button
+                    onClick={() => { setEditingGroup(null); setIsGroupModalOpen(true); }}
+                    className="flex items-center text-xs font-mono text-primary-fixed hover:text-primary-container bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
+                  >
+                    <Plus size={14} className="mr-1" /> Add Group
+                  </button>
+                </div>
               </div>
               
               <div className="flex-1 overflow-y-auto pr-2 space-y-2">
@@ -839,6 +916,82 @@ export function AdminPanel() {
                   {selectedMacro.commands.length === 0 && <p className="text-zinc-500 text-sm mt-4 text-center">No Commands in this Macro.</p>}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Export / Import Modal */}
+          {ioModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="w-full max-w-2xl mx-4 bg-surface-container-low border border-outline-variant flex flex-col" style={{ maxHeight: '80vh' }}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-3 border-b border-outline-variant">
+                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-on-surface">
+                    {ioModal === 'export' ? 'Export Macro Groups' : 'Import Macro Groups'}
+                  </span>
+                  <button onClick={() => setIoModal(null)} className="text-outline hover:text-on-surface transition-colors text-lg leading-none">&times;</button>
+                </div>
+
+                {/* Body */}
+                <div className="flex-1 overflow-auto p-5 space-y-3">
+                  {ioModal === 'export' && (
+                    <p className="text-xs font-mono text-outline">Copy the JSON below to back up or transfer your macro groups.</p>
+                  )}
+                  {ioModal === 'import' && (
+                    <p className="text-xs font-mono text-outline">Paste exported JSON below. <span className="text-error">This will overwrite all existing macro groups.</span></p>
+                  )}
+                  <textarea
+                    value={ioJson}
+                    onChange={e => { if (ioModal === 'import') { setIoJson(e.target.value); setIoConfirm(false); } }}
+                    readOnly={ioModal === 'export'}
+                    rows={16}
+                    spellCheck={false}
+                    className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2.5 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none resize-none"
+                    placeholder={ioModal === 'import' ? '{ "groups": [ ... ] }' : ''}
+                  />
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-end gap-3 px-5 py-3 border-t border-outline-variant">
+                  <button onClick={() => setIoModal(null)} className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors">
+                    Cancel
+                  </button>
+                  {ioModal === 'export' && (
+                    <button
+                      onClick={handleCopy}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors"
+                    >
+                      {ioCopied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy JSON</>}
+                    </button>
+                  )}
+                  {ioModal === 'import' && !ioConfirm && (
+                    <button
+                      onClick={() => setIoConfirm(true)}
+                      disabled={!ioJson.trim()}
+                      className="px-3 py-1.5 text-xs font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Import
+                    </button>
+                  )}
+                  {ioModal === 'import' && ioConfirm && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-error">This will delete all current groups. Sure?</span>
+                      <button
+                        onClick={() => setIoConfirm(false)}
+                        className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleImport}
+                        disabled={ioImporting}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-error-container text-on-error-container hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                      >
+                        {ioImporting ? 'Importing…' : 'Confirm Overwrite'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
