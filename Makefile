@@ -54,11 +54,19 @@ build-agent:
 push-agent:
 	docker push $(DOCKER_USER)/servertoolpython-agent:$(VERSION)
 
+.PHONY: build-arr-searcher
+build-arr-searcher:
+	cd arr_searcher && docker build --platform linux/amd64 -t $(DOCKER_USER)/servertoolpython-arr-searcher:$(VERSION) .
+
+.PHONY: push-arr-searcher
+push-arr-searcher:
+	docker push $(DOCKER_USER)/servertoolpython-arr-searcher:$(VERSION)
+
 .PHONY: build-all
-build-all: build-backend build-frontend build-agent
+build-all: build-backend build-frontend build-agent build-arr-searcher
 
 .PHONY: push-all
-push-all: push-backend push-frontend push-agent
+push-all: push-backend push-frontend push-agent push-arr-searcher
 
 .PHONY: helm-deploy
 helm-deploy:

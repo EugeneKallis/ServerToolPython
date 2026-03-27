@@ -1,6 +1,6 @@
-# CLAUDE.md
+# GEMINI.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Antigravity when working with code in this repository.
 
 ## Project Overview
 
@@ -20,7 +20,7 @@ make migrate        # Apply Alembic migrations
 make migration MESSAGE="description"  # Create a new Alembic migration
 make build-all      # Build all Docker images
 make push-all       # Push all Docker images to registry
-make helm-deploy    # Deploy to Kubernetes via Helm
+make helm-deploy    # Deploy to Kubernetes via Helm (charts in ../kubernetes-cluster)
 ```
 
 ### Backend (standalone)
@@ -136,10 +136,10 @@ This project uses a design system defined in `frontend/design/` (previously `sti
 
 Always refer to these files when generating or modifying any UI component.
 
-- Use only colors, fonts, and spacing values defined in design.md.
+- Use only colors, fonts, and spacing values defined in code.html.
 - Do not invent new values or use defaults from any framework.
-- Match component states (hover, focus, active, disabled) to the patterns in design.md.
-- Follow the typographic scale and weight assignments in design.md.
+- Match component states (hover, focus, active, disabled) to the patterns in code.html.
+- Follow the typographic scale and weight assignments in code.html.
 
 ## Scraper Page Layout
 
@@ -152,7 +152,7 @@ The scraper page (`frontend/app/scraper/page.tsx`) uses a full-width, snap-scrol
 
 ## Memory
 
-Always write notes, decisions, and preferences to this file (`CLAUDE.md`) — never to the external auto-memory system (`~/.claude/projects/.../memory/`). CLAUDE.md is versioned in git and loaded automatically every session.
+Always write notes, decisions, and preferences to this file (`GEMINI.md`) — never to the external auto-memory system (`~/.gemini/antigravity/`). GEMINI.md is versioned in git and loaded automatically every session.
 
 ## Git Workflow
 

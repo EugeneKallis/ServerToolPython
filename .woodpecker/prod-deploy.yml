@@ -57,7 +57,41 @@ steps:
       password:
         from_secret: docker_password
 
-  # 4. Deploy to Production
+  # 4. Build and push Scraper
+  - name: publish-scraper
+    image: plugins/docker
+    when:
+      branch: main
+      event: [ push, manual ]
+    settings:
+      repo: eugenekallis/servertoolpython-scraper
+      tags: ${CI_COMMIT_SHA:0:8}
+      dockerfile: scraper/Dockerfile
+      context: scraper
+      daemon_off: true
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  # 5. Build and push Arr Searcher
+  - name: publish-arr-searcher
+    image: plugins/docker
+    when:
+      branch: main
+      event: [ push, manual ]
+    settings:
+      repo: eugenekallis/servertoolpython-arr-searcher
+      tags: ${CI_COMMIT_SHA:0:8}
+      dockerfile: arr_searcher/Dockerfile
+      context: arr_searcher
+      daemon_off: true
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  # 6. Deploy to Production
   - name: deploy-prod
     image: alpine:latest
     when:
@@ -84,3 +118,5 @@ steps:
       - publish-backend
       - publish-frontend
       - publish-agent
+      - publish-scraper
+      - publish-arr-searcher

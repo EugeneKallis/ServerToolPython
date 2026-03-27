@@ -86,97 +86,98 @@ export default function RunLogPage() {
   const macroNames = [...new Set(runs.map((r: ScriptRun) => r.macro_name))].sort();
 
   return (
-    <div className="flex w-full min-h-[calc(100vh-1rem)] flex-col p-6 text-on-surface">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-headline font-bold tracking-tight text-on-surface">Run Log</h1>
-        <div className="flex items-center gap-3">
-          {/* Reset Agent */}
-          <div className="relative">
-            {!confirmReset ? (
-              <button
-                onClick={() => setConfirmReset(true)}
-                className="flex items-center gap-1.5 border border-error/30 bg-error-container/20 px-3 py-1.5 text-xs font-mono text-error hover:bg-error-container/40 transition-colors"
-                title="Kill all running and pending tasks"
-              >
-                <XCircle size={14} />
-                Reset Agent
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
+    <div className="flex w-full min-h-[calc(100vh-1rem)] flex-col text-on-surface">
+      <div className="w-full p-4 lg:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h1 className="text-3xl font-headline font-bold tracking-tight text-on-surface">Run Log</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Reset Agent */}
+            <div className="relative">
+              {!confirmReset ? (
                 <button
-                  onClick={handleReset}
-                  disabled={resetting}
-                  className="flex items-center gap-1.5 bg-error-container px-3 py-1.5 text-xs font-mono font-semibold text-on-error-container hover:opacity-80 transition-opacity"
+                  onClick={() => setConfirmReset(true)}
+                  className="flex items-center gap-1.5 border border-error/30 bg-error-container/20 px-3 py-1.5 text-xs font-mono text-error hover:bg-error-container/40 transition-colors"
+                  title="Kill all running and pending tasks"
                 >
-                  {resetting ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
-                  Confirm Kill
+                  <XCircle size={14} />
+                  <span className="hidden sm:inline">Reset Agent</span>
                 </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleReset}
+                    disabled={resetting}
+                    className="flex items-center gap-1.5 bg-error-container px-3 py-1.5 text-xs font-mono font-semibold text-on-error-container hover:opacity-80 transition-opacity"
+                  >
+                    {resetting ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setConfirmReset(false)}
+                    className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="h-4 w-px bg-outline-variant mx-1" />
+
+            {/* Clear Log */}
+            <div className="relative">
+              {!confirmClear ? (
                 <button
-                  onClick={() => setConfirmReset(false)}
-                  className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors"
+                  onClick={() => setConfirmClear(true)}
+                  className="flex items-center gap-1.5 border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
+                  title="Clear all run history"
                 >
-                  Cancel
+                  <XCircle size={14} />
+                  Clear All
                 </button>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleClearAll}
+                    disabled={clearing}
+                    className="flex items-center gap-1.5 bg-error-container px-3 py-1.5 text-xs font-mono font-semibold text-on-error-container hover:opacity-80 transition-opacity"
+                  >
+                    {clearing ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setConfirmClear(false)}
+                    className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="h-4 w-px bg-outline-variant mx-1" />
+
+            {/* Filter */}
+            <select
+              value={filter}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)}
+              className="border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
+            >
+              <option value="">All macros</option>
+              {macroNames.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={fetchRuns}
+              className="flex items-center gap-1.5 border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
+            >
+              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
           </div>
-
-          <div className="h-4 w-px bg-outline-variant mx-1" />
-
-          {/* Clear Log */}
-          <div className="relative">
-            {!confirmClear ? (
-              <button
-                onClick={() => setConfirmClear(true)}
-                className="flex items-center gap-1.5 border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
-                title="Clear all run history"
-              >
-                <XCircle size={14} />
-                Clear All
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleClearAll}
-                  disabled={clearing}
-                  className="flex items-center gap-1.5 bg-error-container px-3 py-1.5 text-xs font-mono font-semibold text-on-error-container hover:opacity-80 transition-opacity"
-                >
-                  {clearing ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
-                  Confirm Clear
-                </button>
-                <button
-                  onClick={() => setConfirmClear(false)}
-                  className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="h-4 w-px bg-outline-variant mx-1" />
-
-          {/* Filter */}
-          <select
-            value={filter}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)}
-            className="border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
-          >
-            <option value="">All macros</option>
-            {macroNames.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-
-          <button
-            onClick={fetchRuns}
-            className="flex items-center gap-1.5 border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
         </div>
-      </div>
 
       <div className="flex-1 border border-outline-variant bg-surface-container overflow-hidden">
         {/* Header row */}
@@ -242,6 +243,7 @@ export default function RunLogPage() {
               )}
             </div>
           ))}
+          </div>
         </div>
       </div>
     </div>

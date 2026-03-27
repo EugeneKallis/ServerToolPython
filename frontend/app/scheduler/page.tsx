@@ -66,20 +66,22 @@ export default function SchedulerPage() {
   };
 
   return (
-    <div className="p-6 w-full text-on-surface">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-headline font-bold text-on-surface mb-1">Macro Scheduler</h1>
-          <p className="text-on-surface-variant text-xs font-mono">Automate your macros with precision.</p>
+    <div className="w-full text-on-surface">
+      <div className="p-4 lg:p-6">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-headline font-bold text-on-surface mb-1">Macro Scheduler</h1>
+            <p className="text-on-surface-variant text-xs font-mono">Automate your macros with precision.</p>
+          </div>
+          <button
+            onClick={() => { setEditingSchedule(null); setIsFormOpen(true); }}
+            className="bg-surface-container-high hover:bg-surface-container-highest text-primary-fixed px-4 py-2 border border-outline-variant transition-colors flex items-center gap-2 text-xs font-mono"
+          >
+            <Plus size={14} />
+            <span className="hidden sm:inline">New Schedule</span>
+            <span className="sm:hidden">New</span>
+          </button>
         </div>
-        <button
-          onClick={() => { setEditingSchedule(null); setIsFormOpen(true); }}
-          className="bg-surface-container-high hover:bg-surface-container-highest text-primary-fixed px-4 py-2 border border-outline-variant transition-colors flex items-center gap-2 text-xs font-mono"
-        >
-          <Plus size={14} />
-          New Schedule
-        </button>
-      </div>
 
       {loading ? (
         <div className="flex justify-center py-20">
@@ -145,6 +147,7 @@ export default function SchedulerPage() {
           schedule={editingSchedule}
         />
       )}
+      </div>
     </div>
   );
 }

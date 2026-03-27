@@ -67,5 +67,29 @@ services:
       - redis
       - db
 
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./scraper:/app
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - redis
+      - db
+
+  arr_searcher:
+    build:
+      context: ./arr_searcher
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./arr_searcher:/app
+    environment:
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      - redis
+
 volumes:
   postgres_data:

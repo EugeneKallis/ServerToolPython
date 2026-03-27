@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
 
 from .database import engine, wait_for_db
 from .models import Base, ScriptRun, ChatConversation, ChatMessage
-from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent, schedules, chat
+from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent, schedules, chat, scraper
 from .redis_client import get_redis_client
 from .utils.scheduler import start_scheduler, shutdown_scheduler
 
@@ -109,6 +109,33 @@ async def run_log_listener():
         except Exception as e:
             print(f"[run_log_listener] Error: {e}", flush=True)
 
+# ── Arr Config listener ────────────────────────────────────────────────────────
+
+async def arr_config_listener():
+    """
+    Subscribes to arr_config_requests. When microservices wake up,
+    they request the db config. We query and publish to arr_config_updates.
+    """
+    import redis.asyncio as aioredis
+    from sqlalchemy.orm import Session
+    from app.utils.arr_config import broadcast_arr_config
+    
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    r = aioredis.from_url(redis_url)
+    pubsub = r.pubsub()
+    await pubsub.subscribe("arr_config_requests")
+    print("Arr config listener subscribed to arr_config_requests", flush=True)
+
+    async for message in pubsub.listen():
+        if message["type"] != "message":
+            continue
+        try:
+            with Session(engine) as db:
+                await broadcast_arr_config(r, db)
+        except Exception as e:
+            print(f"[arr_config_listener] Error broadcasting config: {e}", flush=True)
+
+
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
@@ -121,10 +148,14 @@ async def lifespan(app: FastAPI):
 
     # Start the background run-log listener
     listener_task = asyncio.create_task(run_log_listener())
+    
+    # Start the arr config listener
+    config_task = asyncio.create_task(arr_config_listener())
 
     yield
 
     listener_task.cancel()
+    config_task.cancel()
     shutdown_scheduler()
 
 app = FastAPI(title="ServerToolPython API", lifespan=lifespan)
@@ -138,6 +169,7 @@ api_router.include_router(script_runs.router)
 api_router.include_router(agent.router)
 api_router.include_router(schedules.router)
 api_router.include_router(chat.router)
+api_router.include_router(scraper.router)
 
 app.include_router(api_router)
 

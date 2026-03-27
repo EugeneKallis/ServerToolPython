@@ -418,58 +418,60 @@ export default function ChatPage() {
       <div className="flex flex-1 flex-col min-w-0">
 
         {/* Header */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-outline-variant bg-surface-container-low">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsHistoryOpen(v => !v)}
-              className="p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors border border-outline-variant"
-              title={isHistoryOpen ? 'Hide history' : 'Show history'}
-            >
-              {isHistoryOpen
-                ? <PanelLeftClose className="h-4 w-4" />
-                : <PanelLeftOpen className="h-4 w-4" />
-              }
-            </button>
-            <Bot className="h-4 w-4 text-primary-fixed-dim" />
-            <span className="font-headline font-bold text-sm tracking-wide text-on-surface uppercase">Chat</span>
-            {selectedModel && (
-              <span className="bg-surface-container-highest px-3 py-0.5 text-[10px] font-mono text-on-surface-variant border border-outline-variant">
-                {selectedModel}
-              </span>
-            )}
-          </div>
+        <div className="h-16 border-b border-outline-variant bg-surface-container-low">
+          <div className="h-full flex items-center justify-between px-6">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsHistoryOpen(v => !v)}
+                className="p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors border border-outline-variant"
+                title={isHistoryOpen ? 'Hide history' : 'Show history'}
+              >
+                {isHistoryOpen
+                  ? <PanelLeftClose className="h-4 w-4" />
+                  : <PanelLeftOpen className="h-4 w-4" />
+                }
+              </button>
+              <Bot className="h-4 w-4 text-primary-fixed-dim" />
+              <span className="font-headline font-bold text-sm tracking-wide text-on-surface uppercase">Chat</span>
+              {selectedModel && (
+                <span className="hidden sm:inline bg-surface-container-highest px-3 py-0.5 text-[10px] font-mono text-on-surface-variant border border-outline-variant">
+                  {selectedModel}
+                </span>
+              )}
+            </div>
 
-          <div className="relative">
-            <button
-              onClick={() => setShowSettings(v => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors border border-outline-variant"
-            >
-              <Settings className="h-3.5 w-3.5" />
-              Settings
-              <ChevronDown className={`h-3 w-3 transition-transform ${showSettings ? 'rotate-180' : ''}`} />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowSettings(v => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors border border-outline-variant"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Settings</span>
+                <ChevronDown className={`h-3 w-3 transition-transform ${showSettings ? 'rotate-180' : ''}`} />
+              </button>
 
-            {showSettings && (
-              <div className="absolute right-0 top-full mt-1 z-50 w-64 border border-outline-variant bg-surface-container-low p-4 shadow-xl">
-                <p className="mb-2 text-[10px] font-mono text-outline uppercase tracking-widest">Model</p>
-                {models.length > 0 ? (
-                  <select
-                    value={selectedModel}
-                    onChange={e => { setSelectedModel(e.target.value); setShowSettings(false); }}
-                    className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
-                  >
-                    {models.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                ) : (
-                  <p className="text-xs font-mono text-outline">No models found</p>
-                )}
-                {ollamaUrl && (
-                  <p className="mt-3 text-[10px] font-mono text-outline truncate" title={ollamaUrl}>
-                    {ollamaUrl}
-                  </p>
-                )}
-              </div>
-            )}
+              {showSettings && (
+                <div className="absolute right-0 top-full mt-1 z-50 w-64 border border-outline-variant bg-surface-container-low p-4 shadow-xl">
+                  <p className="mb-2 text-[10px] font-mono text-outline uppercase tracking-widest">Model</p>
+                  {models.length > 0 ? (
+                    <select
+                      value={selectedModel}
+                      onChange={e => { setSelectedModel(e.target.value); setShowSettings(false); }}
+                      className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
+                    >
+                      {models.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  ) : (
+                    <p className="text-xs font-mono text-outline">No models found</p>
+                  )}
+                  {ollamaUrl && (
+                    <p className="mt-3 text-[10px] font-mono text-outline truncate" title={ollamaUrl}>
+                      {ollamaUrl}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -487,7 +489,7 @@ export default function ChatPage() {
               </p>
             </div>
           )}
-          <div className="max-w-3xl mx-auto px-6 py-6 space-y-4">
+          <div className="w-full px-6 py-6 space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                 <div className={`flex-shrink-0 h-7 w-7 flex items-center justify-center mt-1 ${
@@ -561,7 +563,7 @@ export default function ChatPage() {
 
         {/* Input */}
         <div className="border-t border-outline-variant bg-surface-container-low px-4 py-4">
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full">
             {/* Attachment previews */}
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-2">
