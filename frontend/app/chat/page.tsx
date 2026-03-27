@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Bot, User, Settings, ChevronDown, Plus, Trash2, MessageSquare, Paperclip, X, FileText } from 'lucide-react';
+import { Send, Bot, User, Settings, ChevronDown, Plus, Trash2, MessageSquare, Paperclip, X, FileText, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface Attachment {
   name: string;
@@ -108,6 +108,7 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -351,43 +352,45 @@ export default function ChatPage() {
     <div className="flex h-full w-full bg-surface text-on-surface">
 
       {/* Conversation list */}
-      <div className="w-56 flex-shrink-0 flex flex-col border-r border-outline-variant bg-surface-container-low">
-        <div className="h-16 flex items-center px-3 border-b border-outline-variant">
-          <button
-            onClick={newChat}
-            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-primary-fixed-dim hover:bg-surface-container-high transition-colors border border-outline-variant"
-          >
-            <Plus className="h-3.5 w-3.5" /> New Chat
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {conversations.map(conv => (
-            <div
-              key={conv.id}
-              onClick={() => selectConversation(conv)}
-              className={`group w-full flex items-center justify-between px-3 py-2 text-left transition-colors cursor-pointer ${
-                activeConv?.id === conv.id
-                  ? 'bg-surface-container-high border-l-2 border-primary-fixed-dim text-on-surface'
-                  : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-              }`}
+      {isHistoryOpen && (
+        <div className="w-56 flex-shrink-0 flex flex-col border-r border-outline-variant bg-surface-container-low">
+          <div className="h-16 flex items-center px-3 border-b border-outline-variant">
+            <button
+              onClick={newChat}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-primary-fixed-dim hover:bg-surface-container-high transition-colors border border-outline-variant"
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate text-xs font-mono">{conv.title}</span>
-              </div>
-              <button
-                onClick={(e) => deleteConversation(conv.id, e)}
-                className="opacity-0 group-hover:opacity-100 p-0.5 text-outline hover:text-error transition-opacity flex-shrink-0"
+              <Plus className="h-3.5 w-3.5" /> New Chat
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {conversations.map(conv => (
+              <div
+                key={conv.id}
+                onClick={() => selectConversation(conv)}
+                className={`group w-full flex items-center justify-between px-3 py-2 text-left transition-colors cursor-pointer ${
+                  activeConv?.id === conv.id
+                    ? 'bg-surface-container-high border-l-2 border-primary-fixed-dim text-on-surface'
+                    : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                }`}
               >
-                <Trash2 className="h-3 w-3" />
-              </button>
-            </div>
-          ))}
-          {conversations.length === 0 && (
-            <p className="px-3 py-4 text-xs font-mono text-outline text-center">No conversations yet</p>
-          )}
+                <div className="flex items-center gap-2 min-w-0">
+                  <MessageSquare className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate text-xs font-mono">{conv.title}</span>
+                </div>
+                <button
+                  onClick={(e) => deleteConversation(conv.id, e)}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 text-outline hover:text-error transition-opacity flex-shrink-0"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {conversations.length === 0 && (
+              <p className="px-3 py-4 text-xs font-mono text-outline text-center">No conversations yet</p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main chat area */}
       <div className="flex flex-1 flex-col min-w-0">
@@ -395,6 +398,16 @@ export default function ChatPage() {
         {/* Header */}
         <div className="h-16 flex items-center justify-between px-6 border-b border-outline-variant bg-surface-container-low">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsHistoryOpen(v => !v)}
+              className="p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors border border-outline-variant"
+              title={isHistoryOpen ? 'Hide history' : 'Show history'}
+            >
+              {isHistoryOpen
+                ? <PanelLeftClose className="h-4 w-4" />
+                : <PanelLeftOpen className="h-4 w-4" />
+              }
+            </button>
             <Bot className="h-4 w-4 text-primary-fixed-dim" />
             <span className="font-headline font-bold text-sm tracking-wide text-on-surface uppercase">Chat</span>
             {selectedModel && (
