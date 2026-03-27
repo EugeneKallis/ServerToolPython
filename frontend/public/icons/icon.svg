@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#131313"/>
+  <rect x="48" y="48" width="416" height="416" rx="48" fill="#1c1b1b"/>
+  <!-- Terminal prompt -->
+  <text x="90" y="220" font-family="monospace" font-size="120" font-weight="bold" fill="#b9cbbc">ST</text>
+  <rect x="90" y="290" width="240" height="6" rx="3" fill="#b9cbbc" opacity="0.4"/>
+  <rect x="90" y="320" width="160" height="6" rx="3" fill="#b9cbbc" opacity="0.25"/>
+  <rect x="90" y="350" width="200" height="6" rx="3" fill="#b9cbbc" opacity="0.15"/>
+</svg>

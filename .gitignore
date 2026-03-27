@@ -213,3 +213,9 @@ ReferenceCode/
 # Playwright screenshots
 .playwright-mcp/
 .DS_Store
+
+# PWA generated files
+frontend/public/sw.js
+frontend/public/sw.js.map
+frontend/public/workbox-*.js
+frontend/public/workbox-*.js.map
