@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Server Tool - Admin Console</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface": "#e5e2e1",
+                        "on-secondary": "#293040",
+                        "inverse-on-surface": "#313030",
+                        "secondary": "#c0c6db",
+                        "error-container": "#93000a",
+                        "on-primary-fixed-variant": "#00522f",
+                        "primary-fixed-dim": "#00e38a",
+                        "surface-dim": "#131313",
+                        "tertiary-fixed-dim": "#4cd6ff",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed-variant": "#404758",
+                        "primary-container": "#00ff9c",
+                        "tertiary": "#f8fcff",
+                        "on-primary-fixed": "#002110",
+                        "on-error": "#690005",
+                        "on-tertiary-container": "#006b84",
+                        "primary": "#f3fff3",
+                        "on-primary-container": "#007142",
+                        "on-secondary-fixed": "#141b2b",
+                        "surface": "#131313",
+                        "on-surface-variant": "#b9cbbc",
+                        "on-background": "#e5e2e1",
+                        "tertiary-fixed": "#b7eaff",
+                        "tertiary-container": "#ade8ff",
+                        "surface-container-low": "#1c1b1b",
+                        "on-tertiary-fixed": "#001f28",
+                        "primary-fixed": "#56ffa7",
+                        "outline": "#849587",
+                        "surface-container-high": "#2a2a2a",
+                        "outline-variant": "#3b4b3f",
+                        "on-primary": "#00391f",
+                        "surface-container-highest": "#353534",
+                        "on-tertiary-fixed-variant": "#004e60",
+                        "surface-bright": "#3a3939",
+                        "surface-container": "#201f1f",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-tertiary": "#003543",
+                        "secondary-fixed-dim": "#c0c6db",
+                        "on-secondary-container": "#aeb5c9",
+                        "background": "#131313",
+                        "surface-tint": "#00e38a",
+                        "surface-variant": "#353534",
+                        "inverse-primary": "#006d40",
+                        "on-error-container": "#ffdad6",
+                        "secondary-fixed": "#dce2f7",
+                        "secondary-container": "#404758",
+                        "inverse-surface": "#e5e2e1"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Space Grotesk", "sans-serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: { "DEFAULT": "0px", "lg": "0px", "xl": "0px", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #131313; }
+        ::-webkit-scrollbar-thumb { background: #3b4b3f; }
+        .glass-panel {
+            background: rgba(53, 53, 52, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .kinetic-gradient {
+            background: linear-gradient(90deg, #00E38A 0%, #00FF9C 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body overflow-hidden h-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="flex items-center bg-surface-container-low px-4 h-16 justify-between shrink-0">
+<div class="flex items-center gap-4">
+<div class="text-primary-fixed flex size-10 items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined">menu</span>
+</div>
+<h1 class="text-primary-fixed font-headline text-lg font-bold tracking-widest uppercase">Server Tool</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container-highest">
+<div class="w-2 h-2 rounded-full kinetic-gradient"></div>
+<span class="font-mono text-[10px] text-primary-fixed">LIVE_NODES: 12</span>
+</div>
+<button class="text-on-surface-variant flex items-center justify-center">
+<span class="material-symbols-outlined">terminal</span>
+</button>
+</div>
+</header>
+<!-- System Alert Banner -->
+<div class="bg-error-container/20 border-b border-error/10 px-4 py-2 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error text-sm">warning</span>
+<p class="text-[11px] font-mono uppercase tracking-tighter text-error">3 CRITICAL EXCEPTIONS DETECTED IN PROD_CLUSTER_A</p>
+</div>
+<span class="text-[10px] font-mono text-error underline cursor-pointer">VIEW_LOGS</span>
+</div>
+<!-- Chat Area -->
+<main class="flex-1 overflow-y-auto p-4 space-y-8 bg-surface-dim">
+<!-- AI Message: System Interface -->
+<div class="flex flex-col gap-2 max-w-[85%]">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-xs" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<span class="font-label text-[10px] font-bold tracking-[0.1em] text-on-surface-variant uppercase">System Interface</span>
+<span class="text-[9px] font-mono text-outline">T-MINUS 12:44:01</span>
+</div>
+<div class="bg-surface-container-low p-4 space-y-3">
+<p class="text-sm leading-relaxed">
+                    [ALERT] Multiple exceptions detected in production cluster. Logs indicate <span class="text-primary-fixed font-bold underline">3 critical exceptions</span> in the last 10 minutes.
+                </p>
+<div class="bg-surface-container-lowest p-3 border-l-2 border-primary-fixed">
+<pre class="font-mono text-[11px] text-primary-fixed-dim leading-tight">ERR_TIMEOUT: Node_04 (192.168.1.45)
+DB_CON_REFUSED: Cluster_A_Primary
+MEM_LIMIT_EXCEEDED: Process_ID_9921</pre>
+</div>
+<p class="text-xs text-on-surface-variant italic">Suggesting immediate investigation of node heartbeats or container resource allocation.</p>
+</div>
+</div>
+<!-- User Message: Admin Root -->
+<div class="flex flex-col gap-2 items-end ml-auto max-w-[85%]">
+<div class="flex items-center gap-2 flex-row-reverse">
+<div class="size-6 bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface text-xs">shield_person</span>
+</div>
+<span class="font-label text-[10px] font-bold tracking-[0.1em] text-primary-fixed uppercase">Admin Root</span>
+<span class="text-[9px] font-mono text-outline">T-MINUS 12:45:12</span>
+</div>
+<div class="bg-primary-fixed p-4 shadow-[0_0_15px_rgba(0,227,138,0.1)]">
+<code class="font-mono text-sm text-on-primary-fixed font-bold">query --logs --filter="error" --last=10m</code>
+</div>
+</div>
+<!-- AI Message: Response -->
+<div class="flex flex-col gap-2 max-w-[85%]">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary-container text-xs" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<span class="font-label text-[10px] font-bold tracking-[0.1em] text-on-surface-variant uppercase">System Interface</span>
+</div>
+<div class="bg-surface-container-low p-4 space-y-4">
+<p class="text-sm">Fetching requested logs for <code class="font-mono bg-surface-container px-1">PROD_CLUSTER_A</code>...</p>
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-surface-container p-2">
+<span class="block text-[9px] font-label text-outline uppercase">Success Rate</span>
+<span class="block text-lg font-mono text-primary-fixed">84.2%</span>
+</div>
+<div class="bg-surface-container p-2">
+<span class="block text-[9px] font-label text-outline uppercase">Latency (p99)</span>
+<span class="block text-lg font-mono text-tertiary-fixed-dim">1.2s</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Realtime Stream Widget (Floating Above Input) -->
+<div class="bg-surface-container-lowest mx-4 mb-2 p-2 border-t-2 border-primary-fixed/30 glass-panel">
+<div class="flex items-center justify-between mb-1">
+<span class="text-[9px] font-mono text-primary-fixed uppercase tracking-widest flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-fixed animate-pulse"></span>
+                Realtime Stream
+            </span>
+<span class="text-[9px] font-mono text-outline">LOG_THREAD_#821</span>
+</div>
+<div class="h-12 overflow-hidden">
+<div class="font-mono text-[9px] text-outline leading-tight space-y-0.5">
+<p>&gt; [2023-11-24 14:22:01] GET /api/v1/status 200 (12ms)</p>
+<p class="text-primary-fixed-dim">&gt; [2023-11-24 14:22:03] ADMIN_ACTION: LOG_QUERY_EXECUTED</p>
+<p class="text-error">&gt; [2023-11-24 14:22:05] CRITICAL: WORKER_TIMEOUT_NODE_04</p>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<footer class="bg-surface-container-low p-4 pb-8 shrink-0">
+<div class="relative flex items-center">
+<div class="absolute left-4 text-primary-fixed-dim">
+<span class="material-symbols-outlined text-xl">chevron_right</span>
+</div>
+<input class="w-full bg-surface-container-lowest border-none border-b-2 border-outline-variant focus:border-primary-fixed focus:ring-0 text-on-surface font-mono text-xs pl-12 pr-12 py-4 uppercase placeholder:text-outline/40" placeholder="ENTER SYSTEM COMMAND OR QUERY..." type="text"/>
+<button class="absolute right-4 text-primary-fixed hover:text-primary-container">
+<span class="material-symbols-outlined text-2xl">send</span>
+</button>
+</div>
+<div class="flex gap-4 mt-3 overflow-x-auto no-scrollbar">
+<button class="shrink-0 text-[10px] font-mono border border-outline-variant px-3 py-1 hover:bg-surface-container-highest transition-colors">--RESTART_ALL</button>
+<button class="shrink-0 text-[10px] font-mono border border-outline-variant px-3 py-1 hover:bg-surface-container-highest transition-colors">--STATUS_REPORT</button>
+<button class="shrink-0 text-[10px] font-mono border border-outline-variant px-3 py-1 hover:bg-surface-container-highest transition-colors">--FLUSH_CACHE</button>
+<button class="shrink-0 text-[10px] font-mono border border-outline-variant px-3 py-1 hover:bg-surface-container-highest transition-colors">--SCALE_UP</button>
+</div>
+</footer>
+</body></html>

@@ -10,7 +10,7 @@ export default function Home() {
   const tag = process.env.APP_DOCKER_TAG || 'dev';
 
   return (
-    <div className="h-full w-full flex flex-col p-4 lg:p-6 min-h-0 bg-white dark:bg-black">
+    <div className="h-full w-full flex flex-col p-4 lg:p-6 min-h-0 bg-surface-dim">
       {/* Main Terminal Section */}
       <div className="flex-1 min-h-0">
         <Terminal className="h-full" environment={env} dockerTag={tag} />

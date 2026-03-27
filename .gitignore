@@ -210,3 +210,5 @@ config.db
 *.db
 
 ReferenceCode/
+# Playwright screenshots
+.playwright-mcp/

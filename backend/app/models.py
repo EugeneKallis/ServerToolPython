@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
-from sqlalchemy import String, Boolean, ForeignKey, MetaData, Text, DateTime, Float
+from sqlalchemy import String, Boolean, ForeignKey, MetaData, Text, DateTime, Float, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 naming_convention = {
@@ -101,3 +101,31 @@ class MacroSchedule(Base):
 
     # Link back to Macro
     macro: Mapped["Macro"] = relationship(back_populates="schedules")
+
+
+class ChatConversation(Base):
+    __tablename__ = "chat_conversation"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(String, default="New Chat")
+    model: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    updated_at: Mapped[datetime] = mapped_column(DateTime)
+
+    messages: Mapped[List["ChatMessage"]] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="ChatMessage.id",
+    )
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_message"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("chat_conversation.id"))
+    role: Mapped[str] = mapped_column(String)   # "user" | "assistant"
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+
+    conversation: Mapped["ChatConversation"] = relationship(back_populates="messages")

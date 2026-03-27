@@ -8,7 +8,7 @@ labels:
 steps:
   # 1. Build and push Backend
   - name: publish-backend
-    image: plugins/kaniko
+    image: plugins/docker
     when:
       branch: main
       event: [ push, manual ]
@@ -17,7 +17,7 @@ steps:
       tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: backend/Dockerfile
       context: backend
-      cache: true
+      daemon_off: true
       username:
         from_secret: docker_username
       password:
@@ -25,7 +25,7 @@ steps:
 
   # 2. Build and push Frontend
   - name: publish-frontend
-    image: plugins/kaniko
+    image: plugins/docker
     when:
       branch: main
       event: [ push, manual ]
@@ -34,8 +34,7 @@ steps:
       tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: frontend/Dockerfile
       context: frontend
-      cache: true
-      cache_repo: eugenekallis/servertoolpython-frontend-cache
+      daemon_off: true
       username:
         from_secret: docker_username
       password:
@@ -43,7 +42,7 @@ steps:
 
   # 3. Build and push Agent
   - name: publish-agent
-    image: plugins/kaniko
+    image: plugins/docker
     when:
       branch: main
       event: [ push, manual ]
@@ -52,7 +51,7 @@ steps:
       tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: agent/Dockerfile
       context: agent
-      cache: true
+      daemon_off: true
       username:
         from_secret: docker_username
       password:

@@ -8,3 +8,5 @@ psycopg2-binary
 redis
 websockets
 apscheduler
+pypdf
+python-multipart

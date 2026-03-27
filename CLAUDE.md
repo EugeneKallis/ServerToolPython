@@ -24,6 +24,7 @@ make helm-deploy    # Deploy to Kubernetes via Helm
 ```
 
 ### Backend (standalone)
+
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -37,6 +38,7 @@ pytest tests/ -v
 ```
 
 ### Frontend (standalone)
+
 ```bash
 cd frontend
 npm install
@@ -58,13 +60,13 @@ npm run lint   # ESLint
 
 ### Services
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| backend | 8080 | FastAPI REST API + WebSocket |
-| frontend | 3000 | Next.js UI |
-| agent | — | Python worker; executes commands |
-| postgres | 5432 | Primary data store |
-| redis | 6379 | Pub/Sub messaging between backend and agent |
+| Service  | Port | Purpose                                     |
+| -------- | ---- | ------------------------------------------- |
+| backend  | 8080 | FastAPI REST API + WebSocket                |
+| frontend | 3000 | Next.js UI                                  |
+| agent    | —    | Python worker; executes commands            |
+| postgres | 5432 | Primary data store                          |
+| redis    | 6379 | Pub/Sub messaging between backend and agent |
 
 ### Backend (`backend/`)
 
@@ -106,3 +108,35 @@ Macro → ScriptRun
 ## CI/CD
 
 Woodpecker CI pipelines are in `.woodpecker/`. Dev and prod deployments are separate pipelines that build Docker images and deploy via Helm to Kubernetes.
+
+### Woodpecker Build Caching
+
+All image builds use `plugins/docker` with `daemon_off: true` to connect to the host Docker daemon via socket instead of running Docker-in-Docker. This gives access to the persistent host layer cache and cuts build times significantly (frontend ~1 min faster).
+
+Required Woodpecker agent config:
+
+- Volume: `/var/run/docker.sock:/var/run/docker.sock`
+- Env: `WOODPECKER_BACKEND_DOCKER_VOLUMES=/var/run/docker.sock:/var/run/docker.sock`
+- Env: `WOODPECKER_PLUGINS_PRIVILEGED=plugins/docker`
+
+If build times regress, verify these are set and the agent has been restarted.
+
+## Playwright / Browser Testing
+
+When using Playwright MCP tools to take screenshots:
+- Always delete screenshots after you are done with them using `rm .playwright-mcp/*.png .playwright-mcp/*.jpeg 2>/dev/null || true`
+- Only keep a screenshot if you will reference it again in the same task
+- Console logs in `.playwright-mcp/` can also be deleted when done
+
+## Design System
+
+This project uses a design system defined in `frontend/design/` (previously `stitch/` at the project root).
+- `frontend/design/code.html` — full design system reference (colors, fonts, components)
+- `frontend/design/screen.png` — visual reference screenshot
+
+Always refer to these files when generating or modifying any UI component.
+
+- Use only colors, fonts, and spacing values defined in design.md.
+- Do not invent new values or use defaults from any framework.
+- Match component states (hover, focus, active, disabled) to the patterns in design.md.
+- Follow the typographic scale and weight assignments in design.md.

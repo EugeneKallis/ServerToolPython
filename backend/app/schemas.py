@@ -110,3 +110,34 @@ class MacroScheduleCreate(MacroScheduleBase):
 class MacroScheduleRead(MacroScheduleBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── Chat ──────────────────────────────────────────────────────────────────────
+
+class ChatMessageCreate(BaseModel):
+    role: str
+    content: str
+
+class ChatMessageRead(BaseModel):
+    id: int
+    conversation_id: int
+    role: str
+    content: str
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class ChatConversationCreate(BaseModel):
+    title: str = "New Chat"
+    model: str
+
+class ChatConversationUpdate(BaseModel):
+    title: Optional[str] = None
+
+class ChatConversationRead(BaseModel):
+    id: int
+    title: str
+    model: str
+    created_at: datetime
+    updated_at: datetime
+    messages: List[ChatMessageRead] = []
+    model_config = ConfigDict(from_attributes=True)

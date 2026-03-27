@@ -7,7 +7,7 @@ labels:
 
 steps:
   - name: build-frontend
-    image: plugins/kaniko
+    image: plugins/docker
     when:
       branch: develop
       event: [ push, manual ]
@@ -16,15 +16,14 @@ steps:
       tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: frontend/Dockerfile
       context: frontend
-      cache: true
-      cache_repo: eugenekallis/servertoolpython-frontend-cache
+      daemon_off: true
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
 
   - name: build-backend
-    image: plugins/kaniko
+    image: plugins/docker
     when:
       branch: develop
       event: [ push, manual ]
@@ -33,14 +32,14 @@ steps:
       tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: backend/Dockerfile
       context: backend
-      cache: true
+      daemon_off: true
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
 
   - name: build-agent
-    image: plugins/kaniko
+    image: plugins/docker
     when:
       branch: develop
       event: [ push, manual ]
@@ -49,7 +48,7 @@ steps:
       tags: dev-${CI_COMMIT_SHA:0:8}
       dockerfile: agent/Dockerfile
       context: agent
-      cache: true
+      daemon_off: true
       username:
         from_secret: docker_username
       password:
