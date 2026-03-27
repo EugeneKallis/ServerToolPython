@@ -18,6 +18,8 @@ interface Message {
   fullContent?: string;      // full content sent to Ollama (includes file text blocks)
   images?: string[];         // base64 image strings
   attachmentNames?: string[]; // file names shown as chips in the bubble
+  timestamp?: number;        // ms since epoch when message was sent / response completed
+  duration?: number;         // ms elapsed for assistant response
 }
 
 interface Conversation {
@@ -93,6 +95,15 @@ function Markdown({ content }: { content: string }) {
   return <>{elements}</>;
 }
 
+function formatTime(ms: number): string {
+  return new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
 export default function ChatPage() {
   const [ollamaUrl, setOllamaUrl] = useState('');
   const [models, setModels] = useState<string[]>([]);
@@ -111,6 +122,7 @@ export default function ChatPage() {
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -238,12 +250,14 @@ export default function ChatPage() {
     setIsStreaming(true);
     setError('');
 
+    const sentAt = Date.now();
     const userMsg: Message = {
       role: 'user',
       content: text,             // display: just what the user typed
       fullContent,               // sent to Ollama: includes file blocks
       images: imageBase64s.length ? imageBase64s : undefined,
       attachmentNames: attachmentNames.length ? attachmentNames : undefined,
+      timestamp: sentAt,
     };
     const history = [...messages, userMsg];
     setMessages([...history, { role: 'assistant', content: '' }]);
@@ -299,6 +313,7 @@ export default function ChatPage() {
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
+      const streamStart = Date.now();
 
       while (true) {
         const { done, value } = await reader.read();
@@ -318,6 +333,16 @@ export default function ChatPage() {
           } catch {}
         }
       }
+      const streamEnd = Date.now();
+      setMessages(prev => {
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          ...updated[updated.length - 1],
+          timestamp: streamEnd,
+          duration: streamEnd - streamStart,
+        };
+        return updated;
+      });
     } catch (e) {
       setError(`Error: ${e instanceof Error ? e.message : String(e)}`);
       setMessages(prev => prev.slice(0, -1));
@@ -336,6 +361,7 @@ export default function ChatPage() {
     }
 
     setIsStreaming(false);
+    textareaRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -474,45 +500,55 @@ export default function ChatPage() {
                     : <User className="h-4 w-4 text-on-surface-variant" />
                   }
                 </div>
-                <div className={`flex-1 min-w-0 px-4 py-3 text-sm leading-relaxed border border-outline-variant ${
-                  msg.role === 'user'
-                    ? 'bg-surface-container-highest text-on-surface'
-                    : 'bg-surface-container text-on-surface'
-                }`}>
-                  {msg.role === 'assistant' ? (
-                    <div className="markdown text-sm leading-relaxed">
-                      <Markdown content={msg.content} />
-                      {isStreaming && i === messages.length - 1 && (
-                        <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary-fixed-dim/60 animate-pulse align-middle" />
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {msg.images && msg.images.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {msg.images.map((b64, idx) => (
-                            <img key={idx} src={`data:image/png;base64,${b64}`} alt="attachment" className="max-h-48 max-w-xs object-contain border border-outline-variant" />
-                          ))}
-                        </div>
-                      )}
-                      {msg.attachmentNames && msg.attachmentNames.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {msg.attachmentNames.map((name, idx) => {
-                            const isImg = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name);
-                            return (
-                              <span key={idx} className="flex items-center gap-1.5 bg-surface-container-lowest border border-outline-variant px-2 py-1 text-[10px] font-mono text-on-surface-variant">
-                                {isImg
-                                  ? <Paperclip className="h-3 w-3 text-primary-fixed-dim" />
-                                  : <FileText className="h-3 w-3 text-primary-fixed-dim" />
-                                }
-                                {name}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {msg.content && (
-                        <span className="whitespace-pre-wrap font-mono text-xs">{msg.content}</span>
+                <div className="flex-1 min-w-0">
+                  <div className={`px-4 py-3 text-sm leading-relaxed border border-outline-variant ${
+                    msg.role === 'user'
+                      ? 'bg-surface-container-highest text-on-surface'
+                      : 'bg-surface-container text-on-surface'
+                  }`}>
+                    {msg.role === 'assistant' ? (
+                      <div className="markdown text-sm leading-relaxed">
+                        <Markdown content={msg.content} />
+                        {isStreaming && i === messages.length - 1 && (
+                          <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary-fixed-dim/60 animate-pulse align-middle" />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {msg.images && msg.images.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {msg.images.map((b64, idx) => (
+                              <img key={idx} src={`data:image/png;base64,${b64}`} alt="attachment" className="max-h-48 max-w-xs object-contain border border-outline-variant" />
+                            ))}
+                          </div>
+                        )}
+                        {msg.attachmentNames && msg.attachmentNames.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {msg.attachmentNames.map((name, idx) => {
+                              const isImg = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name);
+                              return (
+                                <span key={idx} className="flex items-center gap-1.5 bg-surface-container-lowest border border-outline-variant px-2 py-1 text-[10px] font-mono text-on-surface-variant">
+                                  {isImg
+                                    ? <Paperclip className="h-3 w-3 text-primary-fixed-dim" />
+                                    : <FileText className="h-3 w-3 text-primary-fixed-dim" />
+                                  }
+                                  {name}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {msg.content && (
+                          <span className="whitespace-pre-wrap font-mono text-xs">{msg.content}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {msg.timestamp && (
+                    <div className={`flex items-center gap-2 mt-1 px-1 text-[10px] font-mono text-outline ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <span>{formatTime(msg.timestamp)}</span>
+                      {msg.duration !== undefined && (
+                        <span className="text-primary-fixed-dim/70">{formatDuration(msg.duration)}</span>
                       )}
                     </div>
                   )}
@@ -561,6 +597,7 @@ export default function ChatPage() {
                 <Paperclip className="h-4 w-4" />
               </button>
               <textarea
+                ref={textareaRef}
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}

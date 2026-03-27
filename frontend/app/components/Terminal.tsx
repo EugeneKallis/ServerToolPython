@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import { Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Trash2, XCircle } from 'lucide-react';
 import { useTerminal } from '../context/TerminalContext';
 
 interface TerminalProps {
@@ -13,6 +13,17 @@ interface TerminalProps {
 export default function Terminal({ className = '', environment = 'Local', dockerTag = 'dev' }: TerminalProps) {
   const { lines, status, clearLines } = useTerminal();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [killing, setKilling] = useState(false);
+
+  const killAgent = async () => {
+    setKilling(true);
+    try {
+      await fetch('/api/agent/reset', { method: 'POST' });
+    } catch (e) {
+      console.error('Failed to kill agent:', e);
+    }
+    setKilling(false);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -30,13 +41,24 @@ export default function Terminal({ className = '', environment = 'Local', docker
             Console Output
           </span>
         </div>
-        <button
-          onClick={clearLines}
-          className="text-outline hover:text-primary-fixed transition-colors p-1 hover:bg-surface-container-high"
-          title="Clear Console"
-        >
-          <Trash2 size={13} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={killAgent}
+            disabled={killing}
+            className="flex items-center gap-1 px-2 py-1 text-[10px] font-mono text-error/70 hover:text-error hover:bg-error-container/20 border border-transparent hover:border-error/30 transition-colors disabled:opacity-40"
+            title="Kill running task"
+          >
+            <XCircle size={12} />
+            Kill
+          </button>
+          <button
+            onClick={clearLines}
+            className="text-outline hover:text-primary-fixed transition-colors p-1 hover:bg-surface-container-high"
+            title="Clear Console"
+          >
+            <Trash2 size={13} />
+          </button>
+        </div>
       </div>
 
       {/* Terminal Content */}
