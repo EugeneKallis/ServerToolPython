@@ -121,6 +121,15 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                       Scraper
                     </Link>
                   </li>
+                  <li>
+                    <Link
+                      href='/chat'
+                      className='block w-full rounded-md px-3 py-2 text-left text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white'
+                      onClick={onClose}
+                    >
+                      Chat
+                    </Link>
+                  </li>
                 </ul>
               </div>
             </>
