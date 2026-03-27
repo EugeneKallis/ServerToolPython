@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
 
 from .database import engine, wait_for_db
-from .models import Base, ScriptRun
-from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent, schedules
+from .models import Base, ScriptRun, ChatConversation, ChatMessage
+from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent, schedules, chat
 from .redis_client import get_redis_client
 from .utils.scheduler import start_scheduler, shutdown_scheduler
 
@@ -137,6 +137,7 @@ api_router.include_router(arr_instances.router)
 api_router.include_router(script_runs.router)
 api_router.include_router(agent.router)
 api_router.include_router(schedules.router)
+api_router.include_router(chat.router)
 
 app.include_router(api_router)
 

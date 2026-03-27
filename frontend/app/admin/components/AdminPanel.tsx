@@ -16,7 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus, ChevronLeft, CheckCircle2, Pencil, Trash2 } from 'lucide-react';
+import { Plus, ChevronLeft, CheckCircle2, Pencil, Trash2, MessageSquare } from 'lucide-react';
 import { SortableListItem } from './SortableListItem';
 import { ItemForm } from './ItemForm';
 import { useMacros } from '../../context/MacroContext';
@@ -292,6 +292,83 @@ function ArrInstancesPanel({ showSuccess }: { showSuccess: (m: string) => void }
   );
 }
 
+// ─── Chat History sub-panel ───────────────────────────────────────────────────
+
+interface ChatConversation {
+  id: number;
+  title: string;
+  model: string;
+  updated_at: string;
+  messages: { role: string; content: string }[];
+}
+
+function ChatHistoryPanel({ showSuccess }: { showSuccess: (m: string) => void }) {
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const refresh = useCallback(async () => {
+    const res = await fetch('/api/chat/conversations');
+    if (res.ok) setConversations(await res.json());
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this conversation?')) return;
+    await fetch(`/api/chat/conversations/${id}`, { method: 'DELETE' });
+    if (expanded === id) setExpanded(null);
+    await refresh();
+    showSuccess('Conversation deleted.');
+  };
+
+  return (
+    <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Chat History</h2>
+        <span className="text-xs text-zinc-500">{conversations.length} conversation(s)</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+        {conversations.length === 0 && (
+          <p className="text-zinc-500 text-sm mt-4 text-center">No chat history yet.</p>
+        )}
+        {conversations.map(conv => (
+          <div key={conv.id} className="rounded-lg border border-zinc-700/50 bg-zinc-800/60 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2.5 gap-3">
+              <button
+                onClick={() => setExpanded(expanded === conv.id ? null : conv.id)}
+                className="flex items-center gap-3 min-w-0 flex-1 text-left"
+              >
+                <MessageSquare size={14} className="text-zinc-500 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-zinc-100 truncate">{conv.title}</p>
+                  <p className="text-xs text-zinc-500">{conv.model} · {conv.messages.length} messages</p>
+                </div>
+              </button>
+              <button
+                onClick={() => handleDelete(conv.id)}
+                className="text-zinc-400 hover:text-red-400 p-1 rounded hover:bg-zinc-700 flex-shrink-0"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+            {expanded === conv.id && (
+              <div className="border-t border-zinc-700/50 px-3 py-2 space-y-2 max-h-64 overflow-y-auto">
+                {conv.messages.map((msg, i) => (
+                  <div key={i} className={`text-xs rounded px-2 py-1.5 ${msg.role === 'user' ? 'bg-zinc-700 text-zinc-200 ml-6' : 'bg-zinc-900 text-zinc-300 mr-6'}`}>
+                    <span className="font-semibold text-zinc-500 uppercase tracking-wider mr-2">{msg.role}</span>
+                    {msg.content.slice(0, 300)}{msg.content.length > 300 ? '…' : ''}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main AdminPanel ─────────────────────────────────────────────────────────
 
 export function AdminPanel() {
@@ -300,7 +377,7 @@ export function AdminPanel() {
   const [selectedMacro, setSelectedMacro] = useState<Macro | null>(null);
 
   // Top-level tab
-  const [activeTab, setActiveTab] = useState<'macros' | 'arr'>('macros');
+  const [activeTab, setActiveTab] = useState<'macros' | 'arr' | 'chat'>('macros');
 
   // Modals state
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -574,7 +651,7 @@ export function AdminPanel() {
 
       {/* Tab switcher */}
       <div className="flex gap-1 border-b border-zinc-800 pb-3">
-        {(['macros', 'arr'] as const).map((tab) => (
+        {(['macros', 'arr', 'chat'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -584,7 +661,7 @@ export function AdminPanel() {
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
             }`}
           >
-            {tab === 'macros' ? 'Macro Groups' : 'Arr Instances'}
+            {tab === 'macros' ? 'Macro Groups' : tab === 'arr' ? 'Arr Instances' : 'Chat History'}
           </button>
         ))}
       </div>
@@ -592,6 +669,11 @@ export function AdminPanel() {
       {/* ── Arr Instances Tab ── */}
       {activeTab === 'arr' && (
         <ArrInstancesPanel showSuccess={showSuccess} />
+      )}
+
+      {/* ── Chat History Tab ── */}
+      {activeTab === 'chat' && (
+        <ChatHistoryPanel showSuccess={showSuccess} />
       )}
 
       {/* ── Macros Tab ── */}
