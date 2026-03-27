@@ -112,6 +112,31 @@ class MacroScheduleRead(MacroScheduleBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# ── Scraper ───────────────────────────────────────────────────────────────────
+
+class ScrapedItemFileRead(BaseModel):
+    id: int
+    magnet_link: str
+    file_size: Optional[str] = None
+    seeds: Optional[int] = None
+    leechers: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class ScrapedItemRead(BaseModel):
+    id: int
+    title: str
+    image_url: Optional[str] = None
+    magnet_link: str
+    torrent_link: Optional[str] = None
+    tags: Optional[str] = None
+    source: str
+    is_hidden: bool
+    is_downloaded: bool
+    created_at: datetime
+    files: List[ScrapedItemFileRead] = []
+    model_config = ConfigDict(from_attributes=True)
+
+
 # ── Chat ──────────────────────────────────────────────────────────────────────
 
 class ChatMessageCreate(BaseModel):
