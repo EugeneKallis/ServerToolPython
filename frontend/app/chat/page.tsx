@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, Settings, ChevronDown, Plus, Trash2, MessageSquare, Paperclip, X, FileText, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface Attachment {
@@ -94,8 +94,7 @@ function Markdown({ content }: { content: string }) {
 }
 
 export default function ChatPage() {
-  const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
-  const [urlInput, setUrlInput] = useState('http://localhost:11434');
+  const [ollamaUrl, setOllamaUrl] = useState('');
   const [models, setModels] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [showSettings, setShowSettings] = useState(false);
@@ -159,9 +158,14 @@ export default function ChatPage() {
   // ── Init ──────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    const saved = localStorage.getItem('ollama_url');
-    if (saved) { setOllamaUrl(saved); setUrlInput(saved); fetchModels(saved); }
-    else fetchModels(ollamaUrl);
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(data => {
+        const url = data.ollama_host || 'http://localhost:11434';
+        setOllamaUrl(url);
+        fetchModels(url);
+      })
+      .catch(() => setError('Could not load server config.'));
     loadConversations();
   }, []);
 
@@ -184,14 +188,6 @@ export default function ChatPage() {
       setError(`Could not connect to Ollama at ${url}.`);
       setModels([]);
     }
-  };
-
-  const handleSaveUrl = () => {
-    const trimmed = urlInput.trim().replace(/\/$/, '');
-    setOllamaUrl(trimmed);
-    localStorage.setItem('ollama_url', trimmed);
-    setShowSettings(false);
-    fetchModels(trimmed);
   };
 
   // ── Conversations API ─────────────────────────────────────────────────────
@@ -428,35 +424,18 @@ export default function ChatPage() {
             </button>
 
             {showSettings && (
-              <div className="absolute right-0 top-full mt-1 z-50 w-80 border border-outline-variant bg-surface-container-low p-4 shadow-xl">
-                <p className="mb-2 text-[10px] font-mono text-outline uppercase tracking-widest">Ollama URL</p>
-                <input
-                  type="text"
-                  value={urlInput}
-                  onChange={e => setUrlInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveUrl()}
-                  placeholder="http://localhost:11434"
-                  className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm font-mono text-on-surface placeholder-outline focus:border-primary-fixed-dim focus:outline-none"
-                />
-                <div className="mt-3 flex gap-2">
-                  <button onClick={handleSaveUrl} className="flex-1 bg-surface-container-high border border-outline-variant px-3 py-1.5 text-xs font-mono text-primary-fixed-dim hover:bg-surface-container-highest transition-colors">
-                    Connect
-                  </button>
-                  <button onClick={() => setShowSettings(false)} className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors">
-                    Cancel
-                  </button>
-                </div>
-                {models.length > 0 && (
-                  <div className="mt-4">
-                    <p className="mb-2 text-[10px] font-mono text-outline uppercase tracking-widest">Model</p>
-                    <select
-                      value={selectedModel}
-                      onChange={e => setSelectedModel(e.target.value)}
-                      className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
-                    >
-                      {models.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                  </div>
+              <div className="absolute right-0 top-full mt-1 z-50 w-64 border border-outline-variant bg-surface-container-low p-4 shadow-xl">
+                <p className="mb-2 text-[10px] font-mono text-outline uppercase tracking-widest">Model</p>
+                {models.length > 0 ? (
+                  <select
+                    value={selectedModel}
+                    onChange={e => { setSelectedModel(e.target.value); setShowSettings(false); }}
+                    className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
+                  >
+                    {models.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                ) : (
+                  <p className="text-xs font-mono text-outline">No models found at {ollamaUrl || '…'}</p>
                 )}
               </div>
             )}

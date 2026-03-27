@@ -141,6 +141,12 @@ api_router.include_router(chat.router)
 
 app.include_router(api_router)
 
+@app.get("/api/config")
+async def get_config():
+    return {
+        "ollama_host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+    }
+
 @app.get("/")
 async def index(request: Request):
     redis_status = "offline"
