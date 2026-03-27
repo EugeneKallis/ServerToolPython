@@ -140,3 +140,13 @@ Always refer to these files when generating or modifying any UI component.
 - Do not invent new values or use defaults from any framework.
 - Match component states (hover, focus, active, disabled) to the patterns in design.md.
 - Follow the typographic scale and weight assignments in design.md.
+
+## Memory
+
+Always write notes, decisions, and preferences to this file (`CLAUDE.md`) — never to the external auto-memory system (`~/.claude/projects/.../memory/`). CLAUDE.md is versioned in git and loaded automatically every session.
+
+## Git Workflow
+
+- Always work on `develop` branch
+- Only push to `develop` — never push to `main`
+- User manually merges `develop` → `main` when ready

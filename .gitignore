@@ -212,3 +212,4 @@ config.db
 ReferenceCode/
 # Playwright screenshots
 .playwright-mcp/
+.DS_Store
