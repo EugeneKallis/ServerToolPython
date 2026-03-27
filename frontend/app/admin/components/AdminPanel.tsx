@@ -59,238 +59,7 @@ interface ArrInstance {
   enabled: boolean;
 }
 
-// ─── ArrInstances sub-panel ──────────────────────────────────────────────────
 
-function ArrInstancesPanel({ showSuccess }: { showSuccess: (m: string) => void }) {
-  const [instances, setInstances] = useState<ArrInstance[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingInstance, setEditingInstance] = useState<ArrInstance | null>(null);
-
-  // Import state
-  const [showImport, setShowImport] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [importing, setImporting] = useState(false);
-
-  const refresh = useCallback(async () => {
-    const res = await fetch('/api/arr-instances');
-    if (res.ok) setInstances(await res.json());
-  }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
-
-  const handleSave = async (values: Record<string, string>) => {
-    const isEditing = !!editingInstance;
-    const url = isEditing ? `/api/arr-instances/${editingInstance.id}` : '/api/arr-instances';
-    const method = isEditing ? 'PUT' : 'POST';
-    const body = {
-      name: values.name,
-      type: values.type,
-      url: values.url,
-      api_key: values.api_key,
-      enabled: true,
-    };
-
-    const res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert(`Error: ${err.detail ?? res.statusText}`);
-      return;
-    }
-
-    setIsModalOpen(false);
-    setEditingInstance(null);
-    await refresh();
-    showSuccess(isEditing ? 'Instance updated.' : 'Instance created.');
-  };
-
-  const handleImport = async () => {
-    // Split into groups separated by blank lines, filter empty
-    const groups = importText
-      .split(/\n\s*\n/)
-      .map((g) => g.trim().split('\n').map((l) => l.trim()).filter(Boolean))
-      .filter((g) => g.length === 3);
-
-    if (groups.length === 0) {
-      alert('No valid groups found. Each group needs exactly 3 lines: name, URL, API key.');
-      return;
-    }
-
-    setImporting(true);
-    let created = 0;
-    let skipped = 0;
-
-    for (const [name, url, api_key] of groups) {
-      const nameLower = name.toLowerCase();
-      const type = nameLower.includes('radarr') ? 'radarr'
-                 : nameLower.includes('sonarr') ? 'sonarr'
-                 : null;
-
-      if (!type) {
-        console.warn(`Skipping '${name}': could not determine type (no 'radarr' or 'sonarr' in name).`);
-        skipped++;
-        continue;
-      }
-
-      const res = await fetch('/api/arr-instances', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, type, url, api_key, enabled: true }),
-      });
-
-      if (res.ok) {
-        created++;
-      } else {
-        const err = await res.json().catch(() => ({ detail: res.statusText }));
-        console.warn(`Failed to import '${name}': ${err.detail}`);
-        skipped++;
-      }
-    }
-
-    setImporting(false);
-    setImportText('');
-    setShowImport(false);
-    await refresh();
-    showSuccess(`Imported ${created} instance(s)${skipped ? `, ${skipped} skipped` : ''}.`);
-  };
-
-  const handleToggleEnabled = async (inst: ArrInstance) => {
-    await fetch(`/api/arr-instances/${inst.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ enabled: !inst.enabled }),
-    });
-    await refresh();
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this instance?')) return;
-    await fetch(`/api/arr-instances/${id}`, { method: 'DELETE' });
-    await refresh();
-    showSuccess('Instance deleted.');
-  };
-
-  const typeColor = (type: string) =>
-    type === 'radarr' ? 'text-yellow-400 bg-yellow-500/10' : 'text-blue-400 bg-blue-500/10';
-
-  return (
-    <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline">Arr Instances</h2>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowImport((v) => !v)}
-            className="flex items-center text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
-          >
-            {showImport ? 'Cancel Import' : '↓ Bulk Import'}
-          </button>
-          <button
-            onClick={() => { setEditingInstance(null); setIsModalOpen(true); }}
-            className="flex items-center text-xs font-mono text-primary-fixed hover:text-primary-container bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
-          >
-            <Plus size={14} className="mr-1" /> Add Instance
-          </button>
-        </div>
-      </div>
-
-      {/* Bulk import section */}
-      {showImport && (
-        <div className="mb-4 border border-outline-variant bg-surface-container-high p-3 space-y-2">
-          <p className="text-xs text-zinc-400">
-            Paste groups of <span className="text-zinc-200 font-medium">name / URL / API key</span> separated by a blank line.
-            Type is auto-detected from the name (<code className="text-yellow-400">radarr</code> or <code className="text-blue-400">sonarr</code>).
-          </p>
-          <textarea
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
-            rows={10}
-            placeholder={`radarr\nhttp://192.168.1.111:7878\nyour-api-key\n\nsonarr\nhttp://192.168.1.111:8989\nyour-api-key`}
-            className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface placeholder-outline font-mono focus:border-primary-fixed-dim focus:outline-none resize-y"
-          />
-          <div className="flex justify-end">
-            <button
-              onClick={handleImport}
-              disabled={importing || !importText.trim()}
-              className="px-3 py-1.5 text-xs font-mono font-semibold bg-primary-fixed-dim text-on-primary-fixed hover:bg-primary-container disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {importing ? 'Importing…' : 'Import All'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto pr-1 space-y-2">
-        {instances.length === 0 && (
-          <p className="text-zinc-500 text-sm mt-4 text-center">No arr instances configured.</p>
-        )}
-        {instances.map((inst) => (
-          <div
-            key={inst.id}
-            className="flex items-center justify-between bg-surface-container-high border border-outline-variant px-3 py-2.5 gap-3"
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${typeColor(inst.type)}`}>
-                {inst.type}
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-zinc-100 truncate">{inst.name}</p>
-                <p className="text-xs text-zinc-500 truncate">{inst.url}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Enabled toggle */}
-              <button
-                onClick={() => handleToggleEnabled(inst)}
-                title={inst.enabled ? 'Enabled — click to disable' : 'Disabled — click to enable'}
-                className={`w-8 h-4 rounded-full transition-colors relative ${inst.enabled ? 'bg-emerald-500' : 'bg-zinc-600'}`}
-              >
-                <span
-                  className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${inst.enabled ? 'left-4' : 'left-0.5'}`}
-                />
-              </button>
-              <button
-                onClick={() => { setEditingInstance(inst); setIsModalOpen(true); }}
-                className="text-outline hover:text-primary-fixed p-1 hover:bg-surface-container-highest transition-colors"
-              >
-                <Pencil size={14} />
-              </button>
-              <button
-                onClick={() => handleDelete(inst.id)}
-                className="text-outline hover:text-error p-1 hover:bg-surface-container-highest transition-colors"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {isModalOpen && (
-        <ItemForm
-          title={editingInstance ? 'Edit Instance' : 'New Arr Instance'}
-          fields={[
-            { name: 'name', label: 'Name', placeholder: 'e.g. Radarr (Main)' },
-            { name: 'type', label: 'Type', options: [{ label: 'Radarr', value: 'radarr' }, { label: 'Sonarr', value: 'sonarr' }] },
-            { name: 'url', label: 'URL', placeholder: 'http://192.168.1.10:7878' },
-            { name: 'api_key', label: 'API Key', placeholder: 'your-api-key' },
-          ]}
-          initialValues={editingInstance ? {
-            name: editingInstance.name,
-            type: editingInstance.type,
-            url: editingInstance.url,
-            api_key: editingInstance.api_key,
-          } : {}}
-          onSubmit={handleSave}
-          onCancel={() => { setIsModalOpen(false); setEditingInstance(null); }}
-        />
-      )}
-    </div>
-  );
-}
 
 // ─── Chat History sub-panel ───────────────────────────────────────────────────
 
@@ -377,7 +146,7 @@ export function AdminPanel() {
   const [selectedMacro, setSelectedMacro] = useState<Macro | null>(null);
 
   // Top-level tab
-  const [activeTab, setActiveTab] = useState<'macros' | 'arr' | 'chat'>('macros');
+  const [activeTab, setActiveTab] = useState<'macros' | 'chat'>('macros');
 
   // Modals state
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -710,11 +479,11 @@ export function AdminPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-4 p-4">
+    <div className="flex flex-col w-full h-full gap-4 p-4">
 
       {/* Tab switcher */}
       <div className="flex gap-1 border-b border-outline-variant pb-3">
-        {(['macros', 'arr', 'chat'] as const).map((tab) => (
+        {(['macros', 'chat'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -724,15 +493,10 @@ export function AdminPanel() {
                 : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high'
             }`}
           >
-            {tab === 'macros' ? 'Macro Groups' : tab === 'arr' ? 'Arr Instances' : 'Chat History'}
+            {tab === 'macros' ? 'Macro Groups' : 'Chat History'}
           </button>
         ))}
       </div>
-
-      {/* ── Arr Instances Tab ── */}
-      {activeTab === 'arr' && (
-        <ArrInstancesPanel showSuccess={showSuccess} />
-      )}
 
       {/* ── Chat History Tab ── */}
       {activeTab === 'chat' && (

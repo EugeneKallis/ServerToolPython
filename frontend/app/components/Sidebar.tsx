@@ -67,7 +67,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
               <div className='space-y-5'>
                 {macroGroups.map((group: MacroGroup) => (
                   <div key={group.id} className='space-y-1'>
-                    <h3 className='px-2 text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline'>
+                    <h3 className='px-2 text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-outline'>
                       {group.name}
                     </h3>
                     <ul className='space-y-0.5'>
@@ -75,7 +75,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                         <li key={macro.id}>
                           <button
                             onClick={() => setConfirmMacro(macro)}
-                            className='w-full px-3 py-2 text-left text-xs font-mono text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary-fixed border-l-2 border-transparent hover:border-primary-fixed-dim'
+                            className='w-full px-3 py-2 text-left text-sm font-mono text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary-fixed border-l-2 border-transparent hover:border-primary-fixed-dim'
                           >
                             {macro.name}
                           </button>
@@ -87,7 +87,30 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
               </div>
 
               <div className='pt-4 border-t border-outline-variant'>
-                <h3 className='px-2 mb-2 text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline'>
+                <h3 className='px-2 mb-2 text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-outline'>
+                  Tools
+                </h3>
+                <ul className='space-y-0.5'>
+                  {[
+                    { href: '/tools/arr-searcher', label: 'Arr Searcher' },
+                    { href: '/chat', label: 'Chat' },
+                    { href: '/scraper', label: 'Scraper' },
+                  ].map(({ href, label }) => (
+                    <li key={href}>
+                      <Link
+                        href={href}
+                        onClick={onClose}
+                        className='block px-3 py-2 text-sm font-mono text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary-fixed border-l-2 border-transparent hover:border-primary-fixed-dim'
+                      >
+                        {label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className='pt-4 border-t border-outline-variant'>
+                <h3 className='px-2 mb-2 text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-outline'>
                   System
                 </h3>
                 <ul className='space-y-0.5'>
@@ -95,14 +118,12 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                     { href: '/admin', label: 'Admin' },
                     { href: '/run-log', label: 'Run Log' },
                     { href: '/scheduler', label: 'Scheduler' },
-                    { href: '/scraper', label: 'Scraper' },
-                    { href: '/chat', label: 'Chat' },
                   ].map(({ href, label }) => (
                     <li key={href}>
                       <Link
                         href={href}
                         onClick={onClose}
-                        className='block px-3 py-2 text-xs font-mono text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary-fixed border-l-2 border-transparent hover:border-primary-fixed-dim'
+                        className='block px-3 py-2 text-sm font-mono text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary-fixed border-l-2 border-transparent hover:border-primary-fixed-dim'
                       >
                         {label}
                       </Link>

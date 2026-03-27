@@ -70,6 +70,22 @@ steps:
       password:
         from_secret: docker_password
 
+  - name: build-arr-searcher
+    image: plugins/docker
+    when:
+      branch: develop
+      event: [ push, manual ]
+    settings:
+      repo: eugenekallis/servertoolpython-arr-searcher
+      tags: dev-${CI_COMMIT_SHA:0:8}
+      dockerfile: arr_searcher/Dockerfile
+      context: arr_searcher
+      daemon_off: true
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
   - name: deploy-dev
     image: alpine:latest
     when:
@@ -97,3 +113,4 @@ steps:
       - build-backend
       - build-agent
       - build-scraper
+      - build-arr-searcher
