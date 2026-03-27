@@ -178,19 +178,19 @@ function ArrInstancesPanel({ showSuccess }: { showSuccess: (m: string) => void }
     type === 'radarr' ? 'text-yellow-400 bg-yellow-500/10' : 'text-blue-400 bg-blue-500/10';
 
   return (
-    <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col h-full">
+    <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Arr Instances</h2>
+        <h2 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline">Arr Instances</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowImport((v) => !v)}
-            className="flex items-center text-xs font-medium text-zinc-400 hover:text-zinc-200 bg-zinc-800 hover:bg-zinc-700 px-2 py-1 rounded"
+            className="flex items-center text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
           >
             {showImport ? 'Cancel Import' : '↓ Bulk Import'}
           </button>
           <button
             onClick={() => { setEditingInstance(null); setIsModalOpen(true); }}
-            className="flex items-center text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded"
+            className="flex items-center text-xs font-mono text-primary-fixed hover:text-primary-container bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
           >
             <Plus size={14} className="mr-1" /> Add Instance
           </button>
@@ -199,7 +199,7 @@ function ArrInstancesPanel({ showSuccess }: { showSuccess: (m: string) => void }
 
       {/* Bulk import section */}
       {showImport && (
-        <div className="mb-4 rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 space-y-2">
+        <div className="mb-4 border border-outline-variant bg-surface-container-high p-3 space-y-2">
           <p className="text-xs text-zinc-400">
             Paste groups of <span className="text-zinc-200 font-medium">name / URL / API key</span> separated by a blank line.
             Type is auto-detected from the name (<code className="text-yellow-400">radarr</code> or <code className="text-blue-400">sonarr</code>).
@@ -209,13 +209,13 @@ function ArrInstancesPanel({ showSuccess }: { showSuccess: (m: string) => void }
             onChange={(e) => setImportText(e.target.value)}
             rows={10}
             placeholder={`radarr\nhttp://192.168.1.111:7878\nyour-api-key\n\nsonarr\nhttp://192.168.1.111:8989\nyour-api-key`}
-            className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white placeholder-zinc-600 font-mono focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
+            className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface placeholder-outline font-mono focus:border-primary-fixed-dim focus:outline-none resize-y"
           />
           <div className="flex justify-end">
             <button
               onClick={handleImport}
               disabled={importing || !importText.trim()}
-              className="px-3 py-1.5 text-xs font-semibold rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 text-xs font-mono font-semibold bg-primary-fixed-dim text-on-primary-fixed hover:bg-primary-container disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               {importing ? 'Importing…' : 'Import All'}
             </button>
@@ -230,7 +230,7 @@ function ArrInstancesPanel({ showSuccess }: { showSuccess: (m: string) => void }
         {instances.map((inst) => (
           <div
             key={inst.id}
-            className="flex items-center justify-between rounded-lg bg-zinc-800/60 border border-zinc-700/50 px-3 py-2.5 gap-3"
+            className="flex items-center justify-between bg-surface-container-high border border-outline-variant px-3 py-2.5 gap-3"
           >
             <div className="flex items-center gap-3 min-w-0">
               <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${typeColor(inst.type)}`}>
@@ -254,13 +254,13 @@ function ArrInstancesPanel({ showSuccess }: { showSuccess: (m: string) => void }
               </button>
               <button
                 onClick={() => { setEditingInstance(inst); setIsModalOpen(true); }}
-                className="text-zinc-400 hover:text-blue-400 p-1 rounded hover:bg-zinc-700"
+                className="text-outline hover:text-primary-fixed p-1 hover:bg-surface-container-highest transition-colors"
               >
                 <Pencil size={14} />
               </button>
               <button
                 onClick={() => handleDelete(inst.id)}
-                className="text-zinc-400 hover:text-red-400 p-1 rounded hover:bg-zinc-700"
+                className="text-outline hover:text-error p-1 hover:bg-surface-container-highest transition-colors"
               >
                 <Trash2 size={14} />
               </button>
@@ -322,9 +322,9 @@ function ChatHistoryPanel({ showSuccess }: { showSuccess: (m: string) => void })
   };
 
   return (
-    <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col h-full">
+    <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Chat History</h2>
+        <h2 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline">Chat History</h2>
         <span className="text-xs text-zinc-500">{conversations.length} conversation(s)</span>
       </div>
 
@@ -333,7 +333,7 @@ function ChatHistoryPanel({ showSuccess }: { showSuccess: (m: string) => void })
           <p className="text-zinc-500 text-sm mt-4 text-center">No chat history yet.</p>
         )}
         {conversations.map(conv => (
-          <div key={conv.id} className="rounded-lg border border-zinc-700/50 bg-zinc-800/60 overflow-hidden">
+          <div key={conv.id} className="border border-outline-variant bg-surface-container-high overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2.5 gap-3">
               <button
                 onClick={() => setExpanded(expanded === conv.id ? null : conv.id)}
@@ -347,7 +347,7 @@ function ChatHistoryPanel({ showSuccess }: { showSuccess: (m: string) => void })
               </button>
               <button
                 onClick={() => handleDelete(conv.id)}
-                className="text-zinc-400 hover:text-red-400 p-1 rounded hover:bg-zinc-700 flex-shrink-0"
+                className="text-outline hover:text-error p-1 hover:bg-surface-container-highest flex-shrink-0 transition-colors"
               >
                 <Trash2 size={14} />
               </button>
@@ -650,15 +650,15 @@ export function AdminPanel() {
     <div className="flex flex-col h-full gap-4 p-4">
 
       {/* Tab switcher */}
-      <div className="flex gap-1 border-b border-zinc-800 pb-3">
+      <div className="flex gap-1 border-b border-outline-variant pb-3">
         {(['macros', 'arr', 'chat'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded uppercase tracking-wider transition-colors ${
+            className={`px-3 py-1.5 text-xs font-mono font-semibold uppercase tracking-wider transition-colors border-b-2 -mb-3 ${
               activeTab === tab
-                ? 'bg-blue-600 text-white'
-                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                ? 'border-primary-fixed-dim text-primary-fixed bg-surface-container-high'
+                : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high'
             }`}
           >
             {tab === 'macros' ? 'Macro Groups' : tab === 'arr' ? 'Arr Instances' : 'Chat History'}
@@ -682,12 +682,12 @@ export function AdminPanel() {
 
           {/* Groups Panel */}
           {view === 'groups' && (
-            <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col h-full">
+            <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex flex-col h-full">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Macro Groups</h2>
-                <button 
+                <h2 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline">Macro Groups</h2>
+                <button
                   onClick={() => { setEditingGroup(null); setIsGroupModalOpen(true); }}
-                  className="flex items-center text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded"
+                  className="flex items-center text-xs font-mono text-primary-fixed hover:text-primary-container bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
                 >
                   <Plus size={14} className="mr-1" /> Add Group
                 </button>

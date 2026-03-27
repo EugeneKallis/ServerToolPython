@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
+from io import BytesIO
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from ..database import get_session
@@ -78,3 +79,27 @@ def add_message(id: int, body: ChatMessageCreate, db: Session = Depends(get_sess
     db.commit()
     db.refresh(msg)
     return msg
+
+
+@router.post("/extract-pdf")
+async def extract_pdf(file: UploadFile = File(...)):
+    """Extract text content from an uploaded PDF file."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    try:
+        from pypdf import PdfReader
+        data = await file.read()
+        reader = PdfReader(BytesIO(data))
+        pages = []
+        for i, page in enumerate(reader.pages, 1):
+            text = page.extract_text() or ""
+            if text.strip():
+                pages.append(f"[Page {i}]\n{text.strip()}")
+        extracted = "\n\n".join(pages)
+        if not extracted.strip():
+            raise HTTPException(status_code=422, detail="No text could be extracted from this PDF (it may be scanned/image-only)")
+        return {"text": extracted, "pages": len(reader.pages)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to extract PDF text: {str(e)}")

@@ -1,12 +1,23 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Bot, User, Settings, ChevronDown, Plus, Trash2, MessageSquare } from 'lucide-react';
+import { Send, Bot, User, Settings, ChevronDown, Plus, Trash2, MessageSquare, Paperclip, X, FileText } from 'lucide-react';
+
+interface Attachment {
+  name: string;
+  type: 'image' | 'text';
+  dataUrl: string;   // base64 data URL (images) or text content prefix (text)
+  base64: string;    // raw base64 without prefix (for Ollama images field)
+  textContent?: string; // raw text content for text files
+}
 
 interface Message {
   id?: number;
   role: 'user' | 'assistant';
-  content: string;
+  content: string;           // display text (user's typed text only)
+  fullContent?: string;      // full content sent to Ollama (includes file text blocks)
+  images?: string[];         // base64 image strings
+  attachmentNames?: string[]; // file names shown as chips in the bubble
 }
 
 interface Conversation {
@@ -15,6 +26,71 @@ interface Conversation {
   model: string;
   updated_at: string;
   messages: Message[];
+}
+
+function Markdown({ content }: { content: string }) {
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+
+  const renderInline = (text: string): React.ReactNode[] => {
+    const parts: React.ReactNode[] = [];
+    const re = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__|_[^_]+_)/g;
+    let last = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) parts.push(text.slice(last, m.index));
+      const t = m[0];
+      if (t.startsWith('`')) parts.push(<code key={m.index}>{t.slice(1, -1)}</code>);
+      else if (t.startsWith('**') || t.startsWith('__')) parts.push(<strong key={m.index}>{t.slice(2, -2)}</strong>);
+      else parts.push(<em key={m.index}>{t.slice(1, -1)}</em>);
+      last = m.index + t.length;
+    }
+    if (last < text.length) parts.push(text.slice(last));
+    return parts;
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+    // Fenced code block
+    if (line.startsWith('```')) {
+      const lang = line.slice(3).trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```')) { codeLines.push(lines[i]); i++; }
+      elements.push(<pre key={i}><code>{codeLines.join('\n')}</code></pre>);
+    } else if (/^#{1,4} /.test(line)) {
+      const level = line.match(/^(#+)/)?.[1].length ?? 1;
+      const text = line.replace(/^#+\s/, '');
+      const Tag = `h${Math.min(level, 4)}` as 'h1'|'h2'|'h3'|'h4';
+      elements.push(<Tag key={i}>{renderInline(text)}</Tag>);
+    } else if (/^[-*] /.test(line)) {
+      const items: React.ReactNode[] = [];
+      while (i < lines.length && /^[-*] /.test(lines[i])) {
+        items.push(<li key={i}>{renderInline(lines[i].slice(2))}</li>);
+        i++;
+      }
+      elements.push(<ul key={`ul${i}`}>{items}</ul>);
+      continue;
+    } else if (/^\d+\. /.test(line)) {
+      const items: React.ReactNode[] = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push(<li key={i}>{renderInline(lines[i].replace(/^\d+\. /, ''))}</li>);
+        i++;
+      }
+      elements.push(<ol key={`ol${i}`}>{items}</ol>);
+      continue;
+    } else if (line.startsWith('> ')) {
+      elements.push(<blockquote key={i}>{renderInline(line.slice(2))}</blockquote>);
+    } else if (line === '---' || line === '***') {
+      elements.push(<hr key={i} />);
+    } else if (line.trim() === '') {
+      // skip blank lines (rendered as spacing via CSS)
+    } else {
+      elements.push(<p key={i}>{renderInline(line)}</p>);
+    }
+    i++;
+  }
+  return <>{elements}</>;
 }
 
 export default function ChatPage() {
@@ -31,8 +107,53 @@ export default function ChatPage() {
 
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      const isImage = file.type.startsWith('image/');
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
+      if (isImage) {
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          const base64 = dataUrl.split(',')[1];
+          setAttachments(prev => [...prev, { name: file.name, type: 'image', dataUrl, base64 }]);
+        };
+        reader.readAsDataURL(file);
+      } else if (isPdf) {
+        const form = new FormData();
+        form.append('file', file);
+        fetch('/api/chat/extract-pdf', { method: 'POST', body: form })
+          .then(async res => {
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({ detail: 'PDF extraction failed' }));
+              setError(err.detail ?? 'PDF extraction failed');
+              return;
+            }
+            const { text } = await res.json();
+            setAttachments(prev => [...prev, { name: file.name, type: 'text', dataUrl: '', base64: '', textContent: text }]);
+          })
+          .catch(() => setError('Failed to extract PDF text'));
+      } else {
+        reader.onload = () => {
+          const textContent = reader.result as string;
+          setAttachments(prev => [...prev, { name: file.name, type: 'text', dataUrl: '', base64: '', textContent }]);
+        };
+        reader.readAsText(file);
+      }
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
 
   // ── Init ──────────────────────────────────────────────────────────────────
 
@@ -101,20 +222,39 @@ export default function ChatPage() {
 
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || isStreaming || !selectedModel) return;
+    if ((!text && attachments.length === 0) || isStreaming || !selectedModel) return;
+
+    // Build content: prepend text file contents
+    const textFiles = attachments.filter(a => a.type === 'text');
+    const imageFiles = attachments.filter(a => a.type === 'image');
+    let fullContent = text;
+    if (textFiles.length > 0) {
+      const fileBlocks = textFiles.map(f => `--- ${f.name} ---\n${f.textContent}`).join('\n\n');
+      fullContent = fileBlocks + (text ? '\n\n' + text : '');
+    }
+    const imageBase64s = imageFiles.map(a => a.base64);
+
+    const attachmentNames = attachments.map(a => a.name);
 
     setInput('');
+    setAttachments([]);
     setIsStreaming(true);
     setError('');
 
-    const userMsg: Message = { role: 'user', content: text };
+    const userMsg: Message = {
+      role: 'user',
+      content: text,             // display: just what the user typed
+      fullContent,               // sent to Ollama: includes file blocks
+      images: imageBase64s.length ? imageBase64s : undefined,
+      attachmentNames: attachmentNames.length ? attachmentNames : undefined,
+    };
     const history = [...messages, userMsg];
     setMessages([...history, { role: 'assistant', content: '' }]);
 
     // Create conversation on first message
     let conv = activeConv;
     if (!conv) {
-      const title = text.slice(0, 60);
+      const title = (text || attachmentNames[0] || 'Attachment').slice(0, 60);
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,14 +267,27 @@ export default function ChatPage() {
       }
     }
 
-    // Save user message
+    // Save user message (save fullContent so history is correct in future sessions)
     if (conv) {
       await fetch(`/api/chat/conversations/${conv.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', content: text }),
+        body: JSON.stringify({ role: 'user', content: fullContent }),
       });
     }
+
+    // Build Ollama message — use fullContent, include images if present
+    const ollamaUserMsg: Record<string, unknown> = { role: 'user', content: fullContent };
+    if (imageBase64s.length > 0) ollamaUserMsg.images = imageBase64s;
+    // For history, use fullContent (which has file context) falling back to content
+    const ollamaHistory = [
+      ...messages.map(m => ({
+        role: m.role,
+        content: m.fullContent ?? m.content,
+        ...(m.images ? { images: m.images } : {}),
+      })),
+      ollamaUserMsg,
+    ];
 
     // Stream from Ollama
     let assistantContent = '';
@@ -142,7 +295,7 @@ export default function ChatPage() {
       const res = await fetch(`${ollamaUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: selectedModel, messages: history, stream: true }),
+        body: JSON.stringify({ model: selectedModel, messages: ollamaHistory, stream: true }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       if (!res.body) throw new Error('No response body');
@@ -195,43 +348,43 @@ export default function ChatPage() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-full bg-zinc-950 text-zinc-100">
+    <div className="flex h-full w-full bg-surface text-on-surface">
 
       {/* Conversation list */}
-      <div className="w-56 flex-shrink-0 flex flex-col border-r border-zinc-800 bg-zinc-900">
-        <div className="p-3 border-b border-zinc-800">
+      <div className="w-56 flex-shrink-0 flex flex-col border-r border-outline-variant bg-surface-container-low">
+        <div className="h-16 flex items-center px-3 border-b border-outline-variant">
           <button
             onClick={newChat}
-            className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-mono text-primary-fixed-dim hover:bg-surface-container-high transition-colors border border-outline-variant"
           >
-            <Plus className="h-4 w-4" /> New Chat
+            <Plus className="h-3.5 w-3.5" /> New Chat
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {conversations.map(conv => (
-            <button
+            <div
               key={conv.id}
               onClick={() => selectConversation(conv)}
-              className={`group w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+              className={`group w-full flex items-center justify-between px-3 py-2 text-left transition-colors cursor-pointer ${
                 activeConv?.id === conv.id
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                  ? 'bg-surface-container-high border-l-2 border-primary-fixed-dim text-on-surface'
+                  : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
               }`}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <MessageSquare className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="truncate text-xs">{conv.title}</span>
+                <MessageSquare className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate text-xs font-mono">{conv.title}</span>
               </div>
               <button
                 onClick={(e) => deleteConversation(conv.id, e)}
-                className="opacity-0 group-hover:opacity-100 p-0.5 text-zinc-500 hover:text-red-400 transition-opacity flex-shrink-0"
+                className="opacity-0 group-hover:opacity-100 p-0.5 text-outline hover:text-error transition-opacity flex-shrink-0"
               >
                 <Trash2 className="h-3 w-3" />
               </button>
-            </button>
+            </div>
           ))}
           {conversations.length === 0 && (
-            <p className="px-3 py-4 text-xs text-zinc-600 text-center">No conversations yet</p>
+            <p className="px-3 py-4 text-xs font-mono text-outline text-center">No conversations yet</p>
           )}
         </div>
       </div>
@@ -240,12 +393,12 @@ export default function ChatPage() {
       <div className="flex flex-1 flex-col min-w-0">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-zinc-800 bg-zinc-900">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-outline-variant bg-surface-container-low">
           <div className="flex items-center gap-3">
-            <Bot className="h-5 w-5 text-zinc-400" />
-            <span className="font-semibold text-sm">Chat</span>
+            <Bot className="h-4 w-4 text-primary-fixed-dim" />
+            <span className="font-headline font-bold text-sm tracking-wide text-on-surface uppercase">Chat</span>
             {selectedModel && (
-              <span className="rounded-full bg-zinc-800 px-3 py-0.5 text-xs text-zinc-400">
+              <span className="bg-surface-container-highest px-3 py-0.5 text-[10px] font-mono text-on-surface-variant border border-outline-variant">
                 {selectedModel}
               </span>
             )}
@@ -254,7 +407,7 @@ export default function ChatPage() {
           <div className="relative">
             <button
               onClick={() => setShowSettings(v => !v)}
-              className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors border border-outline-variant"
             >
               <Settings className="h-3.5 w-3.5" />
               Settings
@@ -262,31 +415,31 @@ export default function ChatPage() {
             </button>
 
             {showSettings && (
-              <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-lg border border-zinc-700 bg-zinc-900 p-4 shadow-xl">
-                <p className="mb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Ollama URL</p>
+              <div className="absolute right-0 top-full mt-1 z-50 w-80 border border-outline-variant bg-surface-container-low p-4 shadow-xl">
+                <p className="mb-2 text-[10px] font-mono text-outline uppercase tracking-widest">Ollama URL</p>
                 <input
                   type="text"
                   value={urlInput}
                   onChange={e => setUrlInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSaveUrl()}
                   placeholder="http://localhost:11434"
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none"
+                  className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm font-mono text-on-surface placeholder-outline focus:border-primary-fixed-dim focus:outline-none"
                 />
                 <div className="mt-3 flex gap-2">
-                  <button onClick={handleSaveUrl} className="flex-1 rounded-md bg-zinc-700 px-3 py-1.5 text-sm font-medium hover:bg-zinc-600 transition-colors">
+                  <button onClick={handleSaveUrl} className="flex-1 bg-surface-container-high border border-outline-variant px-3 py-1.5 text-xs font-mono text-primary-fixed-dim hover:bg-surface-container-highest transition-colors">
                     Connect
                   </button>
-                  <button onClick={() => setShowSettings(false)} className="rounded-md px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 transition-colors">
+                  <button onClick={() => setShowSettings(false)} className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors">
                     Cancel
                   </button>
                 </div>
                 {models.length > 0 && (
                   <div className="mt-4">
-                    <p className="mb-2 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Model</p>
+                    <p className="mb-2 text-[10px] font-mono text-outline uppercase tracking-widest">Model</p>
                     <select
                       value={selectedModel}
                       onChange={e => setSelectedModel(e.target.value)}
-                      className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none"
+                      className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
                     >
                       {models.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
@@ -298,68 +451,138 @@ export default function ChatPage() {
         </div>
 
         {error && (
-          <div className="px-6 py-2 bg-red-950 border-b border-red-800 text-sm text-red-300">{error}</div>
+          <div className="px-6 py-2 bg-error-container/20 border-b border-error/30 text-sm font-mono text-error">{error}</div>
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+        <div className="flex-1 overflow-y-auto bg-surface-dim">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-zinc-600 gap-3">
+            <div className="flex flex-col items-center justify-center h-full text-outline gap-3">
               <Bot className="h-10 w-10" />
-              <p className="text-sm">
+              <p className="text-xs font-mono uppercase tracking-widest">
                 {selectedModel ? `Ask ${selectedModel} anything` : 'Connect to Ollama to get started'}
               </p>
             </div>
           )}
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {msg.role === 'assistant' && (
-                <div className="flex-shrink-0 h-7 w-7 rounded-full bg-zinc-800 flex items-center justify-center mt-1">
-                  <Bot className="h-4 w-4 text-zinc-400" />
+          <div className="max-w-3xl mx-auto px-6 py-6 space-y-4">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div className={`flex-shrink-0 h-7 w-7 flex items-center justify-center mt-1 ${
+                  msg.role === 'assistant'
+                    ? 'bg-primary-container'
+                    : 'bg-surface-container-highest border border-outline-variant'
+                }`}>
+                  {msg.role === 'assistant'
+                    ? <Bot className="h-4 w-4 text-on-primary-container" />
+                    : <User className="h-4 w-4 text-on-surface-variant" />
+                  }
                 </div>
-              )}
-              <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-zinc-700 text-zinc-100 rounded-br-sm'
-                  : 'bg-zinc-800 text-zinc-100 rounded-bl-sm'
-              }`}>
-                {msg.content}
-                {msg.role === 'assistant' && isStreaming && i === messages.length - 1 && (
-                  <span className="inline-block w-1.5 h-4 ml-0.5 bg-zinc-400 animate-pulse rounded-sm align-middle" />
-                )}
+                <div className={`flex-1 min-w-0 px-4 py-3 text-sm leading-relaxed border border-outline-variant ${
+                  msg.role === 'user'
+                    ? 'bg-surface-container-highest text-on-surface'
+                    : 'bg-surface-container text-on-surface'
+                }`}>
+                  {msg.role === 'assistant' ? (
+                    <div className="markdown text-sm leading-relaxed">
+                      <Markdown content={msg.content} />
+                      {isStreaming && i === messages.length - 1 && (
+                        <span className="inline-block w-1.5 h-4 ml-0.5 bg-primary-fixed-dim/60 animate-pulse align-middle" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {msg.images && msg.images.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {msg.images.map((b64, idx) => (
+                            <img key={idx} src={`data:image/png;base64,${b64}`} alt="attachment" className="max-h-48 max-w-xs object-contain border border-outline-variant" />
+                          ))}
+                        </div>
+                      )}
+                      {msg.attachmentNames && msg.attachmentNames.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {msg.attachmentNames.map((name, idx) => {
+                            const isImg = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name);
+                            return (
+                              <span key={idx} className="flex items-center gap-1.5 bg-surface-container-lowest border border-outline-variant px-2 py-1 text-[10px] font-mono text-on-surface-variant">
+                                {isImg
+                                  ? <Paperclip className="h-3 w-3 text-primary-fixed-dim" />
+                                  : <FileText className="h-3 w-3 text-primary-fixed-dim" />
+                                }
+                                {name}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {msg.content && (
+                        <span className="whitespace-pre-wrap font-mono text-xs">{msg.content}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-              {msg.role === 'user' && (
-                <div className="flex-shrink-0 h-7 w-7 rounded-full bg-zinc-700 flex items-center justify-center mt-1">
-                  <User className="h-4 w-4 text-zinc-300" />
-                </div>
-              )}
-            </div>
-          ))}
-          <div ref={bottomRef} />
+            ))}
+            <div ref={bottomRef} />
+          </div>
         </div>
 
         {/* Input */}
-        <div className="border-t border-zinc-800 bg-zinc-900 px-4 py-4">
-          <div className="flex items-end gap-3 max-w-4xl mx-auto">
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={selectedModel ? `Message ${selectedModel}…` : 'Connect to Ollama first…'}
-              disabled={!selectedModel || isStreaming}
-              rows={1}
-              className="flex-1 resize-none rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 focus:border-zinc-500 focus:outline-none disabled:opacity-50 max-h-40 overflow-y-auto"
-              style={{ minHeight: '44px' }}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || !selectedModel || isStreaming}
-              className="flex-shrink-0 rounded-xl bg-zinc-700 p-3 hover:bg-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+        <div className="border-t border-outline-variant bg-surface-container-low px-4 py-4">
+          <div className="max-w-4xl mx-auto">
+            {/* Attachment previews */}
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {attachments.map((att, i) => (
+                  <div key={i} className="relative flex items-center gap-1.5 bg-surface-container border border-outline-variant px-2 py-1 text-xs font-mono text-on-surface-variant">
+                    {att.type === 'image'
+                      ? <img src={att.dataUrl} alt={att.name} className="h-8 w-8 object-cover" />
+                      : <FileText className="h-3.5 w-3.5 text-primary-fixed-dim" />
+                    }
+                    <span className="max-w-[120px] truncate">{att.name}</span>
+                    <button onClick={() => removeAttachment(i)} className="ml-1 text-outline hover:text-error transition-colors">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-end gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,text/*,application/pdf,.md,.json,.csv,.log,.py,.js,.ts,.tsx,.jsx,.sh,.yaml,.yml,.toml,.xml,.html,.css"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!selectedModel || isStreaming}
+                className="flex-shrink-0 border border-outline-variant bg-surface-container-high p-3 text-on-surface-variant hover:text-primary-fixed-dim hover:border-primary-fixed-dim disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Attach file"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+              <textarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={selectedModel ? `Message ${selectedModel}…` : 'Connect to Ollama first…'}
+                disabled={!selectedModel || isStreaming}
+                rows={1}
+                className="flex-1 resize-none border border-outline-variant bg-surface-container-lowest px-4 py-3 text-sm font-mono text-on-surface placeholder-outline focus:border-primary-fixed-dim focus:outline-none disabled:opacity-50 max-h-40 overflow-y-auto"
+                style={{ minHeight: '44px' }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={(!input.trim() && attachments.length === 0) || !selectedModel || isStreaming}
+                className="flex-shrink-0 bg-surface-container-high border border-outline-variant p-3 hover:bg-surface-container-highest hover:border-primary-fixed-dim disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-primary-fixed-dim"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-          <p className="mt-2 text-center text-xs text-zinc-600">Enter to send · Shift+Enter for new line</p>
+          <p className="mt-2 text-center text-[10px] font-mono text-outline uppercase tracking-widest">Enter to send · Shift+Enter for new line</p>
         </div>
       </div>
     </div>

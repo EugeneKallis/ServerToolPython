@@ -20,54 +20,53 @@ export default function Terminal({ className = '', environment = 'Local', docker
     }
   }, [lines]);
 
-
   return (
-    <div className={`flex flex-col h-full bg-zinc-950 text-zinc-300 font-mono text-sm overflow-hidden border border-zinc-800 rounded-xl shadow-2xl ${className}`}>
+    <div className={`flex flex-col h-full bg-surface-container-lowest text-on-surface font-mono text-sm overflow-hidden border border-outline-variant ${className}`}>
       {/* Terminal Header */}
-      <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-zinc-800">
-        <div className="flex gap-2 w-12">
-          <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-          <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
-          <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+      <div className="flex items-center justify-between px-4 py-2 bg-surface-container-low border-b border-outline-variant">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-4 kinetic-gradient" />
+          <span className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-primary-fixed">
+            Console Output
+          </span>
         </div>
-        <div className="text-xs text-zinc-500 font-sans font-medium uppercase tracking-widest flex-1 text-center">
-          Console Output
-        </div>
-        <div className="flex justify-end w-12">
-          <button 
-            onClick={clearLines} 
-            className="text-zinc-500 hover:text-zinc-300 transition-colors p-1 rounded-md hover:bg-zinc-800"
-            title="Clear Console"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
+        <button
+          onClick={clearLines}
+          className="text-outline hover:text-primary-fixed transition-colors p-1 hover:bg-surface-container-high"
+          title="Clear Console"
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
 
       {/* Terminal Content */}
-      <div 
+      <div
         ref={scrollRef}
-        className="flex-1 p-4 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
+        className="flex-1 p-4 overflow-y-auto space-y-0.5"
       >
         {lines.map((line, idx) => (
           <div key={idx} className="flex gap-3">
-            <span className="text-zinc-600 select-none">{idx + 1}</span>
-            <span className="whitespace-pre-wrap">{line}</span>
+            <span className="text-outline select-none text-[11px] w-6 shrink-0 text-right">{idx + 1}</span>
+            <span className="whitespace-pre-wrap text-on-surface-variant text-[12px] leading-relaxed">{line}</span>
           </div>
         ))}
         <div className="flex gap-3 animate-pulse">
-            <span className="text-zinc-600 select-none">{lines.length + 1}</span>
-            <span className="w-2 h-5 bg-emerald-500/50"></span>
+          <span className="text-outline select-none text-[11px] w-6 shrink-0 text-right">{lines.length + 1}</span>
+          <span className="w-2 h-4 bg-primary-fixed-dim/60" />
         </div>
       </div>
 
       {/* Terminal Footer */}
-      <div className="px-4 py-2 bg-zinc-900/50 border-t border-zinc-800 flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-tighter">
-        <span className="flex items-center gap-1.5">
-          <div className={`w-1.5 h-1.5 rounded-full ${status === 'connected' ? 'bg-emerald-500' : status === 'connecting' ? 'bg-amber-500 animate-pulse' : 'bg-red-500'}`}></div>
-          Status: {status}
+      <div className="px-4 py-2 bg-surface-container-low border-t border-outline-variant flex items-center justify-between text-[9px] font-mono uppercase tracking-widest text-outline">
+        <span className="flex items-center gap-2">
+          <span className={`w-1.5 h-1.5 rounded-full ${
+            status === 'connected' ? 'bg-primary-fixed-dim' :
+            status === 'connecting' ? 'bg-tertiary-fixed-dim animate-pulse' :
+            'bg-error'
+          }`} />
+          {status}
         </span>
-        <span>Environment: {environment} | Tag: {dockerTag}</span>
+        <span className="text-outline/60">{environment} · {dockerTag}</span>
       </div>
     </div>
   );

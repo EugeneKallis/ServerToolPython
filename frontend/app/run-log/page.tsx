@@ -55,7 +55,6 @@ export default function RunLogPage() {
       const res = await fetch('/api/agent/reset', { method: 'POST' });
       if (res.ok) {
         setConfirmReset(false);
-        // Refresh after a short delay to see if status updated
         setTimeout(fetchRuns, 1000);
       }
     } catch (err) {
@@ -78,7 +77,6 @@ export default function RunLogPage() {
     setClearing(false);
   };
 
-  // Initial load + auto-refresh every 5s
   useEffect(() => {
     fetchRuns();
     const interval = setInterval(fetchRuns, 5_000);
@@ -88,34 +86,34 @@ export default function RunLogPage() {
   const macroNames = [...new Set(runs.map((r: ScriptRun) => r.macro_name))].sort();
 
   return (
-    <div className="flex w-full min-h-[calc(100vh-1rem)] flex-col p-6 text-zinc-100">
+    <div className="flex w-full min-h-[calc(100vh-1rem)] flex-col p-6 text-on-surface">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Run Log</h1>
+        <h1 className="text-3xl font-headline font-bold tracking-tight text-on-surface">Run Log</h1>
         <div className="flex items-center gap-3">
           {/* Reset Agent */}
           <div className="relative">
             {!confirmReset ? (
               <button
                 onClick={() => setConfirmReset(true)}
-                className="flex items-center gap-1.5 rounded-md border border-red-900/50 bg-red-950/20 px-3 py-1.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-950/40 transition-colors"
+                className="flex items-center gap-1.5 border border-error/30 bg-error-container/20 px-3 py-1.5 text-xs font-mono text-error hover:bg-error-container/40 transition-colors"
                 title="Kill all running and pending tasks"
               >
                 <XCircle size={14} />
                 Reset Agent
               </button>
             ) : (
-              <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handleReset}
                   disabled={resetting}
-                  className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20"
+                  className="flex items-center gap-1.5 bg-error px-3 py-1.5 text-xs font-mono font-semibold text-on-error hover:opacity-80 transition-opacity"
                 >
                   {resetting ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
                   Confirm Kill
                 </button>
                 <button
                   onClick={() => setConfirmReset(false)}
-                  className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors"
                 >
                   Cancel
                 </button>
@@ -123,32 +121,32 @@ export default function RunLogPage() {
             )}
           </div>
 
-          <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+          <div className="h-4 w-px bg-outline-variant mx-1" />
 
           {/* Clear Log */}
           <div className="relative">
             {!confirmClear ? (
               <button
                 onClick={() => setConfirmClear(true)}
-                className="flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+                className="flex items-center gap-1.5 border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
                 title="Clear all run history"
               >
                 <XCircle size={14} />
                 Clear All
               </button>
             ) : (
-              <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handleClearAll}
                   disabled={clearing}
-                  className="flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-500 transition-colors shadow-lg shadow-red-900/20"
+                  className="flex items-center gap-1.5 bg-error px-3 py-1.5 text-xs font-mono font-semibold text-on-error hover:opacity-80 transition-opacity"
                 >
                   {clearing ? <RefreshCw size={14} className="animate-spin" /> : <XCircle size={14} />}
                   Confirm Clear
                 </button>
                 <button
                   onClick={() => setConfirmClear(false)}
-                  className="px-3 py-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors"
                 >
                   Cancel
                 </button>
@@ -156,23 +154,23 @@ export default function RunLogPage() {
             )}
           </div>
 
-          <div className="h-4 w-[1px] bg-zinc-800 mx-1" />
+          <div className="h-4 w-px bg-outline-variant mx-1" />
 
           {/* Filter */}
           <select
             value={filter}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFilter(e.target.value)}
-            className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-white focus:border-blue-500 focus:outline-none"
+            className="border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
           >
             <option value="">All macros</option>
             {macroNames.map((n) => (
               <option key={n} value={n}>{n}</option>
             ))}
           </select>
-          {/* Manual refresh */}
+
           <button
             onClick={fetchRuns}
-            className="flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors"
+            className="flex items-center gap-1.5 border border-outline-variant bg-surface-container-high px-3 py-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Refresh
@@ -180,9 +178,9 @@ export default function RunLogPage() {
         </div>
       </div>
 
-      <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+      <div className="flex-1 border border-outline-variant bg-surface-container overflow-hidden">
         {/* Header row */}
-        <div className="grid grid-cols-[2rem_1fr_1fr_8rem_6rem_6rem] gap-3 px-4 py-2.5 border-b border-zinc-800 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        <div className="grid grid-cols-[2rem_1fr_1fr_8rem_6rem_6rem] gap-3 px-4 py-2.5 border-b border-outline-variant text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline">
           <span />
           <span>Macro</span>
           <span>Started</span>
@@ -193,66 +191,51 @@ export default function RunLogPage() {
 
         <div className="overflow-y-auto max-h-[calc(100vh-14rem)]">
           {loading && runs.length === 0 && (
-            <div className="flex items-center justify-center py-16 text-zinc-500 text-sm">Loading…</div>
+            <div className="flex items-center justify-center py-16 text-outline text-xs font-mono">Loading…</div>
           )}
           {!loading && runs.length === 0 && (
-            <div className="flex items-center justify-center py-16 text-zinc-500 text-sm">
+            <div className="flex items-center justify-center py-16 text-outline text-xs font-mono">
               No runs yet. Execute a macro to see history here.
             </div>
           )}
           {runs.map((run: ScriptRun) => (
-            <div key={run.id} className={`border-b border-zinc-800/60 ${run.success === null ? 'bg-blue-500/5' : ''}`}>
-              {/* Summary row */}
+            <div key={run.id} className={`border-b border-outline-variant/60 ${run.success === null ? 'bg-surface-container-high/30' : ''}`}>
               <button
                 onClick={() => setExpanded(expanded === run.id ? null : run.id)}
-                className="w-full grid grid-cols-[2rem_1fr_1fr_8rem_6rem_6rem] gap-3 px-4 py-3 text-left hover:bg-zinc-800/40 transition-colors items-center"
+                className="w-full grid grid-cols-[2rem_1fr_1fr_8rem_6rem_6rem] gap-3 px-4 py-3 text-left hover:bg-surface-container-high transition-colors items-center"
               >
-                {/* Expand chevron */}
-                <span className="text-zinc-500">
-                  {expanded === run.id
-                    ? <ChevronDown size={14} />
-                    : <ChevronRight size={14} />}
+                <span className="text-outline">
+                  {expanded === run.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </span>
-
-                {/* Macro name */}
-                <span className="font-mono text-sm text-zinc-100">{run.macro_name}</span>
-
-                {/* Started at */}
-                <span className="text-sm text-zinc-400">{formatDate(run.started_at)}</span>
-
-                {/* Duration */}
-                <span className="flex items-center gap-1 text-sm text-zinc-400">
+                <span className="font-mono text-xs text-on-surface">{run.macro_name}</span>
+                <span className="text-xs font-mono text-on-surface-variant">{formatDate(run.started_at)}</span>
+                <span className="flex items-center gap-1 text-xs font-mono text-on-surface-variant">
                   <Clock size={12} />
                   {formatDuration(run.duration_seconds)}
                 </span>
-
-                {/* Status badge */}
                 <span>
                   {run.success === true && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">
-                      <CheckCircle2 size={13} /> OK
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-primary-fixed-dim">
+                      <CheckCircle2 size={12} /> OK
                     </span>
                   )}
                   {run.success === false && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-400">
-                      <XCircle size={13} /> Failed
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-error">
+                      <XCircle size={12} /> Failed
                     </span>
                   )}
                   {run.success === null && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-400 animate-pulse">
-                      <RefreshCw size={13} className="animate-spin" /> Running
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-tertiary-fixed-dim animate-pulse">
+                      <RefreshCw size={12} className="animate-spin" /> Running
                     </span>
                   )}
                 </span>
-
-                {/* ID */}
-                <span className="text-right text-xs text-zinc-600">#{run.id}</span>
+                <span className="text-right text-[10px] font-mono text-outline">#{run.id}</span>
               </button>
 
-              {/* Expanded output */}
               {expanded === run.id && (
                 <div className="px-4 pb-4">
-                  <pre className="rounded-lg bg-zinc-950 border border-zinc-800 p-4 text-xs text-zinc-300 font-mono whitespace-pre-wrap overflow-x-auto max-h-96 overflow-y-auto">
+                  <pre className="border border-outline-variant bg-surface-container-lowest p-4 text-xs text-on-surface-variant font-mono whitespace-pre-wrap overflow-x-auto max-h-96 overflow-y-auto">
                     {run.output || '(no output captured)'}
                   </pre>
                 </div>
