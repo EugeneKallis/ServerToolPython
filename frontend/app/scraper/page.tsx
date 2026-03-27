@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Download, EyeOff, Undo2, Magnet, Trash2, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { RefreshCw, Download, EyeOff, Undo2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 
+const API_BASE = "https://magnetbridge.ekserver.com/api";
 const SOURCES = ['141jav', 'projectjav', 'pornrips'] as const;
 type Source = typeof SOURCES[number];
 
@@ -47,93 +48,135 @@ function bestFile(files: ScrapedFile[]): ScrapedFile | null {
   })[0];
 }
 
-function ItemCard({ item, onHide, onDownloaded }: {
+function ItemCard({ item, isActive, onHide }: {
   item: ScrapedItem;
+  isActive: boolean;
   onHide: (id: number) => void;
-  onDownloaded: (id: number) => void;
 }) {
+  const [bridgeState, setBridgeState] = React.useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+
   const images = item.image_url ? item.image_url.split(',') : [];
   const mainImage = images[0] ?? null;
   const tags = item.tags ? item.tags.split(',').filter(Boolean) : [];
   const magnet = item.source === 'projectjav' ? bestFile(item.files)?.magnet_link ?? '' : item.magnet_link;
   const best = item.source === 'projectjav' ? bestFile(item.files) : null;
 
+  const sendToBridge = useCallback(async (downloadUncached: boolean) => {
+    if (!magnet || bridgeState === 'loading') return;
+    setBridgeState('loading');
+    try {
+      const formData = new FormData();
+      formData.append('urls', magnet);
+      formData.append('download_uncached', String(downloadUncached));
+
+      const res = await fetch(`${API_BASE}/scraper/bridge`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setBridgeState('done');
+      await fetch(`/api/scraper/items/${item.id}/downloaded`, { method: 'PATCH' });
+      setTimeout(() => onHide(item.id), 800);
+    } catch {
+      setBridgeState('error');
+      setTimeout(() => setBridgeState('idle'), 3000);
+    }
+  }, [magnet, bridgeState, item.id, onHide]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    const onKey = (e: KeyboardEvent) => {
+      // Ignore if modifier keys are pressed
+      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (bridgeState === 'loading' || bridgeState === 'done') return;
+
+      if (e.key === 'd' || e.key === 'Enter') {
+        e.preventDefault();
+        if (magnet) sendToBridge(false);
+      } else if (e.key === 'h' || e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        onHide(item.id);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isActive, bridgeState, item.id, magnet, onHide, sendToBridge]);
+
   return (
-    <div className={`flex gap-3 border border-outline-variant bg-surface-container p-3 transition-opacity ${item.is_downloaded ? 'opacity-50' : ''}`}>
-      {/* Thumbnail */}
-      <div className="shrink-0 w-36 h-24 bg-surface-container-highest border border-outline-variant overflow-hidden">
+    <div className={`h-full w-full min-w-0 flex flex-col bg-surface-container border-b border-outline-variant transition-opacity ${item.is_downloaded ? 'opacity-50' : ''}`}>
+      {/* Image */}
+      <div className="flex-1 min-h-0 bg-surface-container-highest overflow-hidden">
         {mainImage ? (
           <img
             src={mainImage}
             alt={item.title}
             className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-outline text-[10px] font-mono">No image</div>
+          <div className="w-full h-full flex items-center justify-center text-outline text-xs font-mono">No image</div>
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between">
-        <div>
-          <p className={`text-xs font-mono text-on-surface leading-snug line-clamp-2 ${item.is_downloaded ? 'line-through text-outline' : ''}`}>
-            {item.title}
-          </p>
-          {tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {tags.slice(0, 6).map(tag => (
-                <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 border border-outline-variant text-outline bg-surface-container-high">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
+      {/* Footer */}
+      <div className="shrink-0 w-full min-w-0 px-3 sm:px-4 pt-3 pb-3 border-t border-outline-variant flex flex-col gap-2">
+        {/* Title */}
+        <p className={`text-xs sm:text-sm font-mono text-on-surface leading-snug truncate ${item.is_downloaded ? 'line-through text-outline' : ''}`}>
+          {item.title}
+        </p>
+        {/* Actions row */}
+        <div className="flex items-center gap-2 flex-wrap w-full">
+          {/* Meta info */}
           {best && (
-            <p className="text-[10px] font-mono text-outline mt-1">
+            <span className="text-[10px] font-mono text-outline shrink-0">
               {best.file_size && <span className="text-primary-fixed-dim">{best.file_size}</span>}
-              {best.seeds != null && <span className="ml-2">S:{best.seeds}</span>}
-              {best.leechers != null && <span className="ml-1">L:{best.leechers}</span>}
-            </p>
+              {best.seeds != null && <span className="ml-1">S:{best.seeds}</span>}
+            </span>
           )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 mt-2">
-          {magnet && (
-            <a
-              href={magnet}
-              title="Open magnet"
-              className="flex items-center gap-1 text-[10px] font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-2 py-1 hover:bg-surface-container-high transition-colors"
-            >
-              <Magnet size={11} /> Magnet
-            </a>
-          )}
-          {item.torrent_link && (
-            <a
-              href={item.torrent_link}
-              title="Download torrent"
-              className="flex items-center gap-1 text-[10px] font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-2 py-1 hover:bg-surface-container-high transition-colors"
-            >
-              <Download size={11} /> Torrent
-            </a>
-          )}
-          {!item.is_downloaded && (
+          {tags.slice(0, 2).map(tag => (
+            <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 border border-outline-variant text-outline bg-surface-container-high hidden sm:inline shrink-0">
+              {tag}
+            </span>
+          ))}
+          {/* Buttons — push to right */}
+          <div className="flex items-center gap-2 ml-auto">
+            {magnet && (
+              <>
+                <button
+                  onClick={() => sendToBridge(false)}
+                  disabled={bridgeState === 'loading' || bridgeState === 'done'}
+                  title="Download (cached)"
+                  className="flex items-center gap-1.5 text-xs font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Download size={14} className="shrink-0" />
+                  <span className="hidden sm:inline text-[10px]">
+                    {bridgeState === 'loading' ? '…' : bridgeState === 'done' ? '✓' : bridgeState === 'error' ? '✗' : 'Download'}
+                  </span>
+                  <span className="sm:hidden text-[10px]">
+                    {bridgeState === 'loading' ? '…' : bridgeState === 'done' ? '✓' : bridgeState === 'error' ? '✗' : ''}
+                  </span>
+                </button>
+                <button
+                  onClick={() => sendToBridge(true)}
+                  disabled={bridgeState === 'loading' || bridgeState === 'done'}
+                  title="Download (force uncached)"
+                  className="flex items-center gap-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Download size={14} className="shrink-0" />
+                  <span className="text-[10px]">-C</span>
+                </button>
+              </>
+            )}
             <button
-              onClick={() => onDownloaded(item.id)}
-              title="Mark as downloaded"
-              className="flex items-center gap-1 text-[10px] font-mono text-on-surface-variant hover:text-primary-fixed-dim border border-outline-variant px-2 py-1 hover:bg-surface-container-high transition-colors"
+              onClick={() => onHide(item.id)}
+              title="Hide"
+              className="flex items-center gap-1.5 text-xs font-mono text-outline hover:text-error border border-transparent hover:border-error/30 px-3 py-2 sm:py-1.5 hover:bg-error-container/10 transition-colors"
             >
-              <CheckCircle2 size={11} /> Downloaded
+              <EyeOff size={14} className="shrink-0" />
+              <span className="hidden sm:inline text-[10px]">Hide</span>
             </button>
-          )}
-          <button
-            onClick={() => onHide(item.id)}
-            title="Hide"
-            className="flex items-center gap-1 text-[10px] font-mono text-outline hover:text-error border border-transparent hover:border-error/30 px-2 py-1 hover:bg-error-container/10 transition-colors ml-auto"
-          >
-            <EyeOff size={11} /> Hide
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -146,7 +189,10 @@ export default function ScraperPage() {
   const [status, setStatus] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [tagFilter, setTagFilter] = useState('');
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [confirmRefresh, setConfirmRefresh] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -167,6 +213,33 @@ export default function ScraperPage() {
     return () => clearInterval(interval);
   }, [fetchItems, fetchStatus]);
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      if (!el.clientHeight) return;
+      const idx = Math.round(el.scrollTop / el.clientHeight);
+      setActiveIndex(idx);
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        el.scrollBy({ top: el.clientHeight, behavior: 'smooth' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        el.scrollBy({ top: -el.clientHeight, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
   const triggerScrape = async () => {
     await fetch(`/api/scraper/trigger?source=${source}`, { method: 'POST' });
     fetchStatus();
@@ -175,11 +248,6 @@ export default function ScraperPage() {
   const handleHide = async (id: number) => {
     await fetch(`/api/scraper/items/${id}/hide`, { method: 'PATCH' });
     setItems(prev => prev.filter(i => i.id !== id));
-  };
-
-  const handleDownloaded = async (id: number) => {
-    await fetch(`/api/scraper/items/${id}/downloaded`, { method: 'PATCH' });
-    setItems(prev => prev.map(i => i.id === id ? { ...i, is_downloaded: true } : i));
   };
 
   const handleUndoHide = async () => {
@@ -213,106 +281,126 @@ export default function ScraperPage() {
   const isScraping = status[source] ?? false;
 
   return (
-    <div className="flex flex-col h-full p-4 lg:p-6 gap-4 bg-surface-dim text-on-surface">
+    <div className="flex flex-col h-full w-full max-w-full overflow-x-hidden bg-surface-dim text-on-surface">
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="font-headline font-bold text-sm uppercase tracking-[0.15em] text-on-surface">Scraper</h1>
-        <div className="flex items-center gap-2">
+      {/* Controls */}
+      <div className="shrink-0 flex flex-col gap-2 px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-5 pb-2 border-b border-outline-variant relative z-10 bg-surface-dim">
+
+        {/* Header row */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <h1 className="font-headline font-bold text-sm uppercase tracking-[0.15em] text-on-surface mr-auto">Scraper</h1>
+
           <button
             onClick={handleUndoHide}
-            className="flex items-center gap-1.5 text-[10px] font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-2 py-1.5 hover:bg-surface-container-high transition-colors"
+            className="flex items-center gap-1.5 text-[10px] font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-2.5 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors"
             title="Undo last hide"
           >
-            <Undo2 size={12} /> Undo Hide
+            <Undo2 size={13} />
+            <span className="hidden sm:inline">Undo Hide</span>
           </button>
+
           {!confirmRefresh ? (
             <button
               onClick={() => setConfirmRefresh(true)}
-              className="flex items-center gap-1.5 text-[10px] font-mono text-on-surface-variant hover:text-error border border-outline-variant hover:border-error/30 px-2 py-1.5 hover:bg-error-container/10 transition-colors"
+              className="flex items-center gap-1.5 text-[10px] font-mono text-on-surface-variant hover:text-error border border-outline-variant hover:border-error/30 px-2.5 py-2 sm:py-1.5 hover:bg-error-container/10 transition-colors"
+              title="Refresh source"
             >
-              <Trash2 size={12} /> Refresh Source
+              <Trash2 size={13} />
+              <span className="hidden sm:inline">Refresh Source</span>
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-error">Delete all & rescrape?</span>
-              <button onClick={handleRefresh} className="text-[10px] font-mono bg-error-container text-on-error-container px-2 py-1.5 hover:opacity-80 transition-opacity">Confirm</button>
-              <button onClick={() => setConfirmRefresh(false)} className="text-[10px] font-mono text-outline hover:text-on-surface px-2 py-1.5 transition-colors">Cancel</button>
+              <span className="text-[10px] font-mono text-error hidden sm:inline">Delete all &amp; rescrape?</span>
+              <button onClick={handleRefresh} className="text-[10px] font-mono bg-error-container text-on-error-container px-2.5 py-2 sm:py-1.5 hover:opacity-80 transition-opacity">Confirm</button>
+              <button onClick={() => setConfirmRefresh(false)} className="text-[10px] font-mono text-outline hover:text-on-surface px-2.5 py-2 sm:py-1.5 transition-colors">Cancel</button>
             </div>
           )}
+
           <button
             onClick={triggerScrape}
             disabled={isScraping}
-            className="flex items-center gap-1.5 text-[10px] font-mono text-primary-fixed-dim border border-outline-variant px-2 py-1.5 hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1.5 text-[10px] font-mono text-primary-fixed-dim border border-outline-variant px-2.5 py-2 sm:py-1.5 hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Scrape now"
           >
-            <RefreshCw size={12} className={isScraping ? 'animate-spin' : ''} />
-            {isScraping ? 'Scraping…' : 'Scrape Now'}
+            <RefreshCw size={13} className={isScraping ? 'animate-spin' : ''} />
+            <span className="hidden sm:inline">{isScraping ? 'Scraping…' : 'Scrape Now'}</span>
           </button>
         </div>
-      </div>
 
-      {/* Source tabs */}
-      <div className="flex gap-0 border-b border-outline-variant">
-        {SOURCES.map(s => (
-          <button
-            key={s}
-            onClick={() => { setSource(s); setTagFilter(''); }}
-            className={`px-4 py-2 text-xs font-mono uppercase tracking-wider border-b-2 -mb-px transition-colors ${
-              source === s
-                ? 'border-primary-fixed-dim text-primary-fixed-dim bg-surface-container-high'
-                : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high'
-            }`}
-          >
-            {s}
-            {status[s] && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-primary-fixed-dim animate-pulse align-middle" />}
-          </button>
-        ))}
-      </div>
-
-      {/* Tag filter */}
-      {availableTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setTagFilter('')}
-            className={`text-[10px] font-mono px-2 py-0.5 border transition-colors ${!tagFilter ? 'border-primary-fixed-dim text-primary-fixed-dim bg-surface-container-high' : 'border-outline-variant text-outline hover:text-on-surface'}`}
-          >
-            All ({items.length})
-          </button>
-          {availableTags.map(tag => (
+        {/* Source tabs */}
+        <div className="flex border-b border-outline-variant -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6">
+          {SOURCES.map(s => (
             <button
-              key={tag}
-              onClick={() => setTagFilter(tag === tagFilter ? '' : tag)}
-              className={`text-[10px] font-mono px-2 py-0.5 border transition-colors ${tagFilter === tag ? 'border-primary-fixed-dim text-primary-fixed-dim bg-surface-container-high' : 'border-outline-variant text-outline hover:text-on-surface'}`}
+              key={s}
+              onClick={() => { setSource(s); setTagFilter(''); }}
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs font-mono uppercase tracking-wider border-b-2 -mb-px transition-colors ${
+                source === s
+                  ? 'border-primary-fixed-dim text-primary-fixed-dim bg-surface-container-high'
+                  : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high'
+              }`}
             >
-              {tag} ({tagMap[tag]})
+              {s}
+              {status[s] && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-primary-fixed-dim animate-pulse align-middle" />}
             </button>
           ))}
         </div>
-      )}
 
-      {/* Items grid */}
-      <div className="flex-1 overflow-y-auto">
+        {/* Tag filter */}
+        {availableTags.length > 0 && (
+          <div>
+            <button
+              onClick={() => setTagsOpen(o => !o)}
+              className="flex items-center gap-1 text-[10px] font-mono text-outline hover:text-on-surface transition-colors py-1"
+            >
+              {tagsOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+              Tags {tagFilter && <span className="text-primary-fixed-dim">· {tagFilter}</span>}
+            </button>
+            {tagsOpen && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5 pb-1">
+                <button
+                  onClick={() => setTagFilter('')}
+                  className={`text-[10px] font-mono px-2 py-1 border transition-colors ${!tagFilter ? 'border-primary-fixed-dim text-primary-fixed-dim bg-surface-container-high' : 'border-outline-variant text-outline hover:text-on-surface'}`}
+                >
+                  All ({items.length})
+                </button>
+                {availableTags.map(tag => (
+                  <button
+                    key={tag}
+                    onClick={() => setTagFilter(tag === tagFilter ? '' : tag)}
+                    className={`text-[10px] font-mono px-2 py-1 border transition-colors ${tagFilter === tag ? 'border-primary-fixed-dim text-primary-fixed-dim bg-surface-container-high' : 'border-outline-variant text-outline hover:text-on-surface'}`}
+                  >
+                    {tag} ({tagMap[tag]})
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>{/* end controls */}
+
+      {/* Items — snap scroll */}
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-scroll snap-y snap-mandatory">
         {loading && (
-          <div className="flex items-center justify-center py-16 text-outline text-xs font-mono">Loading…</div>
+          <div className="h-full flex items-center justify-center text-outline text-xs font-mono">Loading…</div>
         )}
         {!loading && filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-outline">
+          <div className="h-full flex flex-col items-center justify-center gap-3 text-outline">
             <p className="text-xs font-mono">No items found.</p>
-            <button onClick={triggerScrape} disabled={isScraping} className="text-[10px] font-mono text-primary-fixed-dim border border-outline-variant px-3 py-1.5 hover:bg-surface-container-high disabled:opacity-40 transition-colors">
+            <button onClick={triggerScrape} disabled={isScraping} className="text-xs font-mono text-primary-fixed-dim border border-outline-variant px-4 py-2.5 hover:bg-surface-container-high disabled:opacity-40 transition-colors">
               {isScraping ? 'Scraping…' : 'Trigger Scrape'}
             </button>
           </div>
         )}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-          {filtered.map(item => (
+        {filtered.map((item, index) => (
+          <div key={item.id} className="h-full snap-start">
             <ItemCard
-              key={item.id}
               item={item}
+              isActive={index === activeIndex}
               onHide={handleHide}
-              onDownloaded={handleDownloaded}
             />
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,12 +1,14 @@
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 
 SKIP_TITLES = ["Transfixed", ".TS", "TGirls", "Trans."]
 
+_scraper = cloudscraper.create_scraper()
+
 
 def _scrape_pixhost(url: str) -> str:
     try:
-        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+        res = _scraper.get(url, timeout=15)
         if res.status_code != 200:
             return ""
         soup = BeautifulSoup(res.text, "html.parser")
@@ -18,7 +20,7 @@ def _scrape_pixhost(url: str) -> str:
 
 def _scrape_detail(url: str, item: dict):
     try:
-        res = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=30)
+        res = _scraper.get(url, timeout=30)
         if res.status_code != 200:
             return
         soup = BeautifulSoup(res.text, "html.parser")
@@ -53,8 +55,7 @@ def scrape(url: str) -> list[dict]:
     if not url.startswith("http"):
         url = "https://" + url
 
-    headers = {"User-Agent": "Mozilla/5.0"}
-    res = requests.get(url, headers=headers, timeout=30)
+    res = _scraper.get(url, timeout=30)
     if res.status_code != 200:
         raise Exception(f"HTTP {res.status_code} from {url}")
 
@@ -62,7 +63,7 @@ def scrape(url: str) -> list[dict]:
     results = []
 
     for article in soup.select("article.type-post"):
-        item = {"source": "pornrips", "title": "", "image": "", "images": [], "magnet": "", "torrent": "", "tags": []}
+        item = {"source": "pornrips", "title": "", "image": "", "images": [], "magnet": "", "torrent": "", "tags": [], "page_url": ""}
 
         title_a = article.select_one(".entry-title a")
         if not title_a:
@@ -72,6 +73,7 @@ def scrape(url: str) -> list[dict]:
             continue
 
         detail_url = title_a.get("href", "")
+        item["page_url"] = detail_url
 
         post_id = article.get("id", "").replace("post-", "")
         if post_id:
@@ -103,6 +105,7 @@ def scrape_pages(max_pages: int = 1) -> list[dict]:
         url = base_url if page == 1 else f"{base_url}page/{page}/"
         try:
             items = scrape(url)
+            print(f"[pornrips] page {page}: {len(items)} items", flush=True)
             if not items:
                 break
             all_results.extend(items)

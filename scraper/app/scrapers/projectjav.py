@@ -1,15 +1,16 @@
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
 
 SKIP_TAGS = {"vr", "vr exclusive", "high-quality vr", "8kvr", "high quality vr"}
+
+_scraper = cloudscraper.create_scraper()
 
 
 def scrape(url: str) -> list[dict]:
     if not url.startswith("http"):
         url = "https://" + url
 
-    headers = {"User-Agent": "Mozilla/5.0"}
-    res = requests.get(url, headers=headers, timeout=30)
+    res = _scraper.get(url, timeout=30)
     if res.status_code != 200:
         raise Exception(f"HTTP {res.status_code} from {url}")
 

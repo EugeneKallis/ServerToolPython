@@ -3,7 +3,9 @@ import os
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -16,6 +18,7 @@ from ..schemas import ScrapedItemRead
 router = APIRouter(prefix="/scraper", tags=["scraper"])
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+BRIDGE_URL = os.getenv("BRIDGE_URL", "https://magnetbridge.ekserver.com/api")
 SOURCES = ["141jav", "projectjav", "pornrips"]
 
 
@@ -122,3 +125,30 @@ async def scraper_status(r: aioredis.Redis = Depends(get_redis)):
         val = await r.get(f"scraper:status:{source}")
         statuses[source] = val == b"1" if val else False
     return statuses
+
+
+# ── Bridge proxy ───────────────────────────────────────────────────────────────
+
+class BridgeRequest(BaseModel):
+    url: str
+    download_uncached: bool = False
+
+
+@router.post("/bridge")
+async def send_to_bridge(req: BridgeRequest):
+    """Proxy a magnet/torrent URL to the magnet bridge service."""
+    async with httpx.AsyncClient(timeout=30) as client:
+        try:
+            resp = await client.post(
+                f"{BRIDGE_URL}/special/add",
+                data={
+                    "arr": "special",
+                    "downloadUncached": str(req.download_uncached).lower(),
+                    "urls": req.url,
+                },
+            )
+            if resp.status_code >= 400:
+                raise HTTPException(status_code=resp.status_code, detail=resp.text)
+            return {"status": "sent"}
+        except httpx.RequestError as e:
+            raise HTTPException(status_code=502, detail=f"Bridge unreachable: {e}")

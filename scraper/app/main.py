@@ -78,6 +78,8 @@ def _scrape_sync(source: str, force: bool):
     else:
         return
 
+    print(f"[scraper] {source}: scraped {len(items)} raw items", flush=True)
+
     with Session(engine) as session:
         _cleanup_old(session)
         new_count = 0
@@ -85,6 +87,7 @@ def _scrape_sync(source: str, force: bool):
         for item in items:
             identifier = item.get("page_url") or item.get("magnet", "")
             if not identifier:
+                print(f"[scraper] {source}: skipping '{item.get('title', '?')}' — no identifier", flush=True)
                 continue
 
             existing = session.scalars(

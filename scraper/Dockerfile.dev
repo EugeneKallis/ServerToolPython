@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt watchdog
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["watchmedo", "auto-restart", "--directory=.", "--pattern=*.py", "--recursive", "--", "python", "app/main.py"]
+CMD ["watchmedo", "auto-restart", "--directory=.", "--pattern=*.py", "--recursive", "--", "python", "-m", "app.main"]

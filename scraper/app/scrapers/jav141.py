@@ -1,13 +1,14 @@
-import requests
+import cloudscraper
 from bs4 import BeautifulSoup
+
+_scraper = cloudscraper.create_scraper()
 
 
 def scrape(url: str) -> list[dict]:
     if not url.startswith("http"):
         url = "https://" + url
 
-    headers = {"User-Agent": "Mozilla/5.0"}
-    res = requests.get(url, headers=headers, timeout=30)
+    res = _scraper.get(url, timeout=30)
     if res.status_code != 200:
         raise Exception(f"HTTP {res.status_code} from {url}")
 
@@ -54,6 +55,7 @@ def scrape_pages(max_pages: int = 3) -> list[dict]:
         url = base_url if page == 1 else f"{base_url}?page={page}"
         try:
             items = scrape(url)
+            print(f"[141jav] page {page}: {len(items)} items", flush=True)
             if not items:
                 break
             all_results.extend(items)

@@ -9,8 +9,6 @@
       "Bash(docker restart:*)"
     ],
     "deny": [],
-    "additionalDirectories": [
-      "/Users/ponzi/dev/kubernetes-cluster"
-    ]
+    "additionalDirectories": ["/Users/ponzi/dev/kubernetes-cluster", "/Users/ponzi/dev/ServerTool"]
   }
 }
