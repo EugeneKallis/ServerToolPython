@@ -435,7 +435,12 @@ export default function ChatPage() {
                     {models.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 ) : (
-                  <p className="text-xs font-mono text-outline">No models found at {ollamaUrl || '…'}</p>
+                  <p className="text-xs font-mono text-outline">No models found</p>
+                )}
+                {ollamaUrl && (
+                  <p className="mt-3 text-[10px] font-mono text-outline truncate" title={ollamaUrl}>
+                    {ollamaUrl}
+                  </p>
                 )}
               </div>
             )}
