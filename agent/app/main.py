@@ -36,6 +36,16 @@ task_manager = TaskManager()
 AGENT_ID = str(uuid.uuid4())
 
 
+async def heartbeat(r: redis.Redis, agent_id: str):
+    """Periodically refresh a Redis key so the backend can count live agents."""
+    while True:
+        try:
+            await r.setex(f"agent:heartbeat:{agent_id}", 30, 1)
+        except Exception:
+            pass
+        await asyncio.sleep(10)
+
+
 async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_id: str, is_last: bool = True):
     await r.publish("agent_responses", json.dumps({
         "status": "started",
