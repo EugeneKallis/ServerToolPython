@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send, Bot, User, Terminal, ChevronDown, Trash2, XCircle, AlertCircle, Info, Plus, MessageSquare, PanelLeftOpen, PanelLeftClose, Paperclip, FileText, Image as ImageIcon, X } from 'lucide-react';
 import { useTerminal, TerminalFeedItem } from '../context/TerminalContext';
+import { useAgentCount } from '../hooks/useAgentCount';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const msgCounter = useRef(0);
+  const agentCount = useAgentCount();
 
   // Merge terminal feed items and chat messages, sorted by id (timestamp)
   const feed: FeedEntry[] = [
@@ -682,6 +684,25 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
             'bg-error'
           }`} />
           {status}
+          {agentCount !== null && (
+            <>
+              <span className="text-outline/40">·</span>
+              <span className="flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  agentCount === 0 ? 'bg-error' : 'bg-primary-fixed-dim'
+                }`} />
+                {agentCount === 1 ? '1 AGENT' : `${agentCount} AGENTS`}
+              </span>
+            </>
+          )}
+          {agentCount === null && (
+            <>
+              <span className="text-outline/40">·</span>
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-outline" />
+              </span>
+            </>
+          )}
         </span>
         <span className="text-outline/60">{environment} · {dockerTag}</span>
       </div>
