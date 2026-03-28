@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Send, Bot, User, Terminal, ChevronDown, Trash2, XCircle, AlertCircle, Info, Plus, MessageSquare, PanelLeftOpen, PanelLeftClose } from 'lucide-react';
+import { Send, Bot, User, Terminal, ChevronDown, Trash2, XCircle, AlertCircle, Info, Plus, MessageSquare, PanelLeftOpen, PanelLeftClose, Paperclip, FileText, Image as ImageIcon, X } from 'lucide-react';
 import { useTerminal, TerminalFeedItem } from '../context/TerminalContext';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -25,6 +25,14 @@ interface Conversation {
 type FeedEntry =
   | { kind: 'terminal'; item: TerminalFeedItem }
   | { kind: 'chat'; msg: ChatMessage };
+
+interface Attachment {
+  name: string;
+  mimeType: string;
+  data: string; // base64 (no data-url prefix)
+  isImage: boolean;
+  objectUrl?: string; // for image previews
+}
 
 // ── Markdown ──────────────────────────────────────────────────────────────────
 
@@ -115,8 +123,11 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
   const [error, setError] = useState('');
   const [killing, setKilling] = useState(false);
 
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const msgCounter = useRef(0);
 
   // Merge terminal feed items and chat messages, sorted by id (timestamp)
@@ -206,24 +217,79 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
     setKilling(false);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1] ?? result;
+        const isImage = file.type.startsWith('image/');
+        setAttachments(prev => [...prev, {
+          name: file.name,
+          mimeType: file.type,
+          data: base64,
+          isImage,
+          objectUrl: isImage ? URL.createObjectURL(file) : undefined,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const removeAttachment = (idx: number) => {
+    setAttachments(prev => {
+      const a = prev[idx];
+      if (a.objectUrl) URL.revokeObjectURL(a.objectUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || isStreaming || !selectedModel) return;
+    if ((!text && attachments.length === 0) || isStreaming || !selectedModel) return;
 
     setInput('');
+    const currentAttachments = attachments;
+    setAttachments([]);
     setIsStreaming(true);
     setError('');
+
+    // Build the message content: prepend text-file contents, use images array for images
+    const textFiles = currentAttachments.filter(a => !a.isImage);
+    const imageFiles = currentAttachments.filter(a => a.isImage);
+
+    let fullText = text;
+    if (textFiles.length > 0) {
+      const fileBlocks = textFiles.map(f =>
+        `[${f.name}]\n\`\`\`\n${atob(f.data)}\n\`\`\``
+      ).join('\n\n');
+      fullText = fullText ? `${fileBlocks}\n\n${fullText}` : fileBlocks;
+    }
 
     const now = Date.now();
     const userMsgId = now + msgCounter.current++;
     const asstMsgId = now + msgCounter.current++;
 
-    const userMsg: ChatMessage = { id: userMsgId, role: 'user', content: text };
+    // Show attachments inline in user message display
+    const displayContent = [
+      ...currentAttachments.map(a => `[attachment: ${a.name}]`),
+      ...(text ? [text] : []),
+    ].join('\n');
+
+    const userMsg: ChatMessage = { id: userMsgId, role: 'user', content: displayContent };
     const asstMsg: ChatMessage = { id: asstMsgId, role: 'assistant', content: '', streaming: true };
+
+    const userOllamaMsg: { role: string; content: string; images?: string[] } = {
+      role: 'user',
+      content: fullText,
+      ...(imageFiles.length > 0 ? { images: imageFiles.map(f => f.data) } : {}),
+    };
 
     const historyForOllama = [
       ...chatMessages.map(m => ({ role: m.role, content: m.content })),
-      { role: 'user', content: text },
+      userOllamaMsg,
     ];
 
     setChatMessages(prev => [...prev, userMsg, asstMsg]);
@@ -234,7 +300,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: text.slice(0, 60), model: selectedModel }),
+        body: JSON.stringify({ title: (fullText || displayContent).slice(0, 60), model: selectedModel }),
       });
       if (res.ok) {
         conv = await res.json();
@@ -247,7 +313,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
       await fetch(`/api/chat/conversations/${conv.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', content: text }),
+        body: JSON.stringify({ role: 'user', content: fullText || displayContent }),
       });
     }
 
@@ -545,7 +611,46 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
 
       {/* Chat input */}
       <div className="border-t border-outline-variant bg-surface-container-low px-3 py-2.5">
-        <div className="flex items-end gap-2">
+        {/* Attachment previews */}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {attachments.map((a, idx) => (
+              <div key={idx} className="flex items-center gap-1 bg-surface-container-highest border border-outline-variant px-2 py-1 text-[11px] font-mono text-on-surface-variant max-w-[160px]">
+                {a.isImage ? (
+                  a.objectUrl
+                    ? <img src={a.objectUrl} alt={a.name} className="h-5 w-5 object-cover flex-shrink-0" />
+                    : <ImageIcon size={12} className="flex-shrink-0" />
+                ) : (
+                  <FileText size={12} className="flex-shrink-0 text-primary-fixed-dim" />
+                )}
+                <span className="truncate">{a.name}</span>
+                <button
+                  onClick={() => removeAttachment(idx)}
+                  className="flex-shrink-0 text-outline hover:text-error transition-colors"
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center border border-outline-variant bg-surface-container-lowest focus-within:border-primary-fixed-dim transition-colors">
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,text/*,.md,.json,.yaml,.yml,.csv,.log,.sh,.py,.js,.ts,.tsx,.jsx"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={!selectedModel || isStreaming}
+            className="flex-shrink-0 px-3 self-stretch flex items-center text-outline hover:text-on-surface border-r border-outline-variant hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Attach file"
+          >
+            <Paperclip size={14} />
+          </button>
           <textarea
             ref={textareaRef}
             value={input}
@@ -554,13 +659,13 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
             placeholder={selectedModel ? `Ask ${selectedModel}… (Enter to send)` : 'Connect to Ollama to chat…'}
             disabled={!selectedModel || isStreaming}
             rows={1}
-            className="flex-1 resize-none border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm font-mono text-on-surface placeholder-outline focus:border-primary-fixed-dim focus:outline-none disabled:opacity-50 max-h-32 overflow-y-auto"
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-sm font-mono text-on-surface placeholder-outline focus:outline-none disabled:opacity-50 max-h-32 overflow-y-auto"
             style={{ minHeight: '38px' }}
           />
           <button
             onClick={sendMessage}
-            disabled={!input.trim() || !selectedModel || isStreaming}
-            className="flex-shrink-0 bg-surface-container-high border border-outline-variant p-2 hover:bg-surface-container-highest hover:border-primary-fixed-dim disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-primary-fixed-dim"
+            disabled={(!input.trim() && attachments.length === 0) || !selectedModel || isStreaming}
+            className="flex-shrink-0 px-3 self-stretch flex items-center border-l border-outline-variant text-primary-fixed-dim hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             title="Send"
           >
             <Send size={14} />
