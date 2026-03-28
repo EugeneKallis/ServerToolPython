@@ -214,6 +214,9 @@ ReferenceCode/
 .playwright-mcp/
 .DS_Store
 
+# Claude agent worktrees (runtime scratch dirs, never commit)
+.claude/worktrees/
+
 # PWA generated files
 frontend/public/sw.js
 frontend/public/sw.js.map
