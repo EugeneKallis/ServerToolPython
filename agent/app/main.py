@@ -36,7 +36,6 @@ task_manager = TaskManager()
 
 
 async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_id: str, is_last: bool = True):
-    # Notify backend that this command is starting — backend will write the ScriptRun row
     await r.publish("agent_responses", json.dumps({
         "status": "started",
         "run_id": run_id,
@@ -111,25 +110,17 @@ async def command_worker(r: redis.Redis):
             task_manager.queue.task_done()
 
 
-async def run_agent():
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    print(f"Agent starting, connecting to Redis at {redis_url}...")
-
-    r = redis.from_url(redis_url)
+async def control_listener(r: redis.Redis):
+    """Subscribe to agent_control for kill signals — received by ALL agents."""
     pubsub = r.pubsub()
-
-    asyncio.create_task(command_worker(r))
-
-    await pubsub.subscribe("agent_commands")
-    print("Subscribed to 'agent_commands' channel. Waiting for commands...", flush=True)
+    await pubsub.subscribe("agent_control")
+    print("Subscribed to 'agent_control' channel.", flush=True)
 
     async for message in pubsub.listen():
         if message["type"] == "message":
             try:
                 data = json.loads(message["data"])
-                msg_type = data.get("type")
-
-                if msg_type == "kill":
+                if data.get("type") == "kill":
                     print("Received KILL command. Resetting agent...", flush=True)
                     await task_manager.kill_current_task()
                     task_manager.clear_queue()
@@ -138,17 +129,44 @@ async def run_agent():
                         "command": "",
                         "message": "Agent tasks killed and queue cleared."
                     }))
-                    continue
-
-                command = data.get("command")
-                macro_name = data.get("macro_name", "")
-                run_id = data.get("run_id") or str(uuid.uuid4())
-                is_last = data.get("is_last", True)
-                if command:
-                    print(f"Queuing command: {command} (macro: {macro_name}, run_id: {run_id}, is_last: {is_last})", flush=True)
-                    await task_manager.queue.put((command, macro_name, run_id, is_last))
             except Exception as e:
-                print(f"Error processing message: {e}", flush=True)
+                print(f"Error processing control message: {e}", flush=True)
+
+
+async def command_listener(r: redis.Redis):
+    """BRPOP from agent_commands queue — only ONE agent picks up each command."""
+    print("Listening on 'agent_commands' queue (BRPOP). Waiting for commands...", flush=True)
+
+    while True:
+        try:
+            result = await r.brpop("agent_commands", timeout=0)
+            if result is None:
+                continue
+            _, raw = result
+            data = json.loads(raw)
+            command = data.get("command")
+            macro_name = data.get("macro_name", "")
+            run_id = data.get("run_id") or str(uuid.uuid4())
+            is_last = data.get("is_last", True)
+            if command:
+                print(f"Queuing command: {command} (macro: {macro_name}, run_id: {run_id}, is_last: {is_last})", flush=True)
+                await task_manager.queue.put((command, macro_name, run_id, is_last))
+        except Exception as e:
+            print(f"Error processing command message: {e}", flush=True)
+            await asyncio.sleep(1)
+
+
+async def run_agent():
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    print(f"Agent starting, connecting to Redis at {redis_url}...")
+
+    r = redis.from_url(redis_url)
+
+    await asyncio.gather(
+        command_worker(r),
+        command_listener(r),
+        control_listener(r),
+    )
 
 
 if __name__ == "__main__":
