@@ -177,6 +177,8 @@ async def run_agent():
         command_worker(r),
         command_listener(r),
         control_listener(r),
+        heartbeat(r, AGENT_ID),
+        return_exceptions=True,
     )
 
 
