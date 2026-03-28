@@ -91,7 +91,24 @@ steps:
       password:
         from_secret: docker_password
 
-  # 6. Deploy to Production
+  # 6. Build and push Magnet Bridge
+  - name: publish-magnet-bridge
+    image: plugins/docker
+    when:
+      branch: main
+      event: [ push, manual ]
+    settings:
+      repo: eugenekallis/servertoolpython-magnet-bridge
+      tags: ${CI_COMMIT_SHA:0:8}
+      dockerfile: magnet_bridge/Dockerfile
+      context: magnet_bridge
+      daemon_off: true
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+
+  # 7. Deploy to Production
   - name: deploy-prod
     image: alpine:latest
     when:
@@ -120,3 +137,4 @@ steps:
       - publish-agent
       - publish-scraper
       - publish-arr-searcher
+      - publish-magnet-bridge

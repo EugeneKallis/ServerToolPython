@@ -20,6 +20,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#131313" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
       <body className="antialiased min-h-screen bg-surface text-on-surface font-body">
         <TerminalProvider>
           <MacroProvider>
