@@ -85,27 +85,34 @@ async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, 
     run_id = str(uuid.uuid4())
     
     try:
-        for idx, cmd in enumerate(commands):
+        import shlex
+        script_lines = ["set -e"]
+        for cmd in commands:
             cmd_text = cmd.command
-            is_last = (idx == len(commands) - 1)
-            
+
             # Append optional arguments if selected — values are shell-quoted
             # to prevent injection via argument content
             if payload and payload.selected_arguments:
-                import shlex
                 selected_ids = payload.selected_arguments.get(str(cmd.id), [])
                 for arg in cmd.arguments:
                     if arg.id in selected_ids:
                         cmd_text += f" {shlex.quote(arg.arg_value)}"
-            
-            payload_data = json.dumps({
-                "command": cmd_text.strip(),
-                "macro_name": macro.name,
-                "run_id": run_id,
-                "is_last": is_last
-            })
-            await r.lpush("agent_commands", payload_data)
+
+            script_lines.append(cmd_text.strip())
+
+        # Join all commands into a single bash script. `set -e` ensures
+        # execution stops immediately if any command exits with a non-zero
+        # code; the overall exit code will be that of the failing command.
+        combined_script = "\n".join(script_lines)
+
+        payload_data = json.dumps({
+            "command": combined_script,
+            "macro_name": macro.name,
+            "run_id": run_id,
+            "is_last": True
+        })
+        await r.lpush("agent_commands", payload_data)
     finally:
         await r.close()
-        
+
     return {"status": "triggered", "command_count": len(commands), "run_id": run_id}

@@ -9,7 +9,14 @@
       "Bash(docker restart:*)",
       "Bash(node \"$HOME/.claude/get-shit-done/bin/gsd-tools.cjs\" generate-claude-md)",
       "Bash(node:*)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx --no-install tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(git -C /Users/ponzi/dev/ServerToolPython status --short)",
+      "Bash(git -C /Users/ponzi/dev/ServerToolPython/.claude/worktrees/agent-acd71bd8 status --short)",
+      "Bash(git -C /Users/ponzi/dev/ServerToolPython add .planning/phases/01-heartbeat-endpoint-and-footer-display/01-03-SUMMARY.md)",
+      "Bash(git -C:*)"
     ],
     "deny": [],
     "additionalDirectories": [

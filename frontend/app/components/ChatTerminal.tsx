@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send, Bot, User, Terminal, ChevronDown, Trash2, XCircle, AlertCircle, Info, Plus, MessageSquare, PanelLeftOpen, PanelLeftClose, Paperclip, FileText, Image as ImageIcon, X } from 'lucide-react';
 import { useTerminal, TerminalFeedItem } from '../context/TerminalContext';
+import { useAgentCount } from '../hooks/useAgentCount';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -110,9 +111,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
 
   const [ollamaUrl, setOllamaUrl] = useState('');
   const [models, setModels] = useState<string[]>([]);
-  const [selectedModel, setSelectedModel] = useState(() =>
-    typeof window !== 'undefined' ? localStorage.getItem('chatTerminal.model') ?? '' : ''
-  );
+  const [selectedModel, setSelectedModel] = useState('');
   const [showModelPicker, setShowModelPicker] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -129,6 +128,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const msgCounter = useRef(0);
+  const agentCount = useAgentCount();
 
   // Merge terminal feed items and chat messages, sorted by id (timestamp)
   const feed: FeedEntry[] = [
@@ -139,6 +139,12 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
     const idB = b.kind === 'terminal' ? b.item.id : b.msg.id;
     return idA - idB;
   });
+
+  // Restore persisted model selection on mount (client-only — avoids SSR hydration mismatch)
+  useEffect(() => {
+    const saved = localStorage.getItem('chatTerminal.model');
+    if (saved) setSelectedModel(saved);
+  }, []);
 
   useEffect(() => {
     fetch('/api/config')
@@ -520,7 +526,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
             // System message — centered divider
             if (item.type === 'system') {
               return (
-                <div key={item.id} className="flex items-center gap-2 text-[11px] font-mono text-outline">
+                <div key={`terminal-${item.id}`} className="flex items-center gap-2 text-[11px] font-mono text-outline">
                   <span className="h-px flex-1 bg-outline-variant" />
                   <Info size={10} />
                   <span>{item.text}</span>
@@ -531,7 +537,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
 
             // Agent execution block
             return (
-              <div key={item.id} className="flex gap-2.5">
+              <div key={`terminal-${item.id}`} className="flex gap-2.5">
                 <div className="flex-shrink-0 h-6 w-6 flex items-center justify-center bg-surface-container-highest border border-outline-variant mt-0.5">
                   <Terminal size={12} className="text-tertiary-fixed-dim" />
                 </div>
@@ -567,7 +573,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
           const msg = entry.msg;
           const isUser = msg.role === 'user';
           return (
-            <div key={msg.id} className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
+            <div key={`chat-${msg.id}`} className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`flex-shrink-0 h-6 w-6 flex items-center justify-center mt-0.5 ${
                 isUser
                   ? 'bg-surface-container-highest border border-outline-variant'
@@ -682,6 +688,25 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
             'bg-error'
           }`} />
           {status}
+          {agentCount !== null && (
+            <>
+              <span className="text-outline/40">·</span>
+              <span className="flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  agentCount === 0 ? 'bg-error' : 'bg-primary-fixed-dim'
+                }`} />
+                {agentCount === 1 ? '1 AGENT' : `${agentCount} AGENTS`}
+              </span>
+            </>
+          )}
+          {agentCount === null && (
+            <>
+              <span className="text-outline/40">·</span>
+              <span className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-outline" />
+              </span>
+            </>
+          )}
         </span>
         <span className="text-outline/60">{environment} · {dockerTag}</span>
       </div>
