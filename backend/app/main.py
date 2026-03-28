@@ -1,7 +1,7 @@
 import json
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
 
 from .database import engine, wait_for_db
@@ -136,6 +136,113 @@ async def arr_config_listener():
             print(f"[arr_config_listener] Error broadcasting config: {e}", flush=True)
 
 
+# ── Scraper results listener ──────────────────────────────────────────────────
+
+async def scraper_results_listener():
+    """
+    Drains the scraper_results Redis list and persists scraped items to the DB.
+    The scraper LPUSHes batches; we BRPOP so messages survive backend restarts.
+    """
+    import redis.asyncio as aioredis
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+    from .models import ScrapedItem, ScrapedItemFile
+
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    r = aioredis.from_url(redis_url)
+    print("Scraper results listener waiting on scraper_results queue", flush=True)
+
+    while True:
+        try:
+            result = await r.brpop("scraper_results", timeout=0)
+            if not result:
+                continue
+            _, raw = result
+            data = json.loads(raw)
+            source = data.get("source", "unknown")
+            force = data.get("force", False)
+            items = data.get("items", [])
+
+            with Session(engine) as session:
+                # Cleanup old hidden items
+                cutoff = datetime.now(timezone.utc) - timedelta(days=20)
+                old = session.scalars(
+                    select(ScrapedItem).where(
+                        ScrapedItem.is_hidden == True,
+                        ScrapedItem.created_at < cutoff,
+                    )
+                ).all()
+                for item in old:
+                    session.delete(item)
+                if old:
+                    session.commit()
+                    print(f"[scraper_results] Cleaned up {len(old)} old hidden items", flush=True)
+
+                new_count = 0
+                for item_data in items:
+                    identifier = item_data.get("page_url") or item_data.get("magnet_link", "")
+                    if not identifier:
+                        continue
+
+                    existing = session.scalars(
+                        select(ScrapedItem).where(ScrapedItem.magnet_link == identifier)
+                    ).first()
+
+                    if existing and not force:
+                        continue
+
+                    if not existing:
+                        title = item_data.get("title", "").replace('"', "").replace("'", "").strip()
+                        tags_str = item_data.get("tags") or ""
+                        files = item_data.get("files", [])
+
+                        if source == "projectjav":
+                            db_item = ScrapedItem(
+                                title=title,
+                                image_url=item_data.get("image_url") or None,
+                                magnet_link=identifier,
+                                torrent_link=None,
+                                tags=tags_str or None,
+                                source=source,
+                            )
+                            session.add(db_item)
+                            session.flush()
+                            for f in files:
+                                try:
+                                    session.add(ScrapedItemFile(
+                                        item_id=db_item.id,
+                                        magnet_link=f["magnet_link"],
+                                        file_size=f.get("file_size") or None,
+                                        seeds=f.get("seeds"),
+                                        leechers=f.get("leechers"),
+                                    ))
+                                    session.flush()
+                                except Exception:
+                                    session.rollback()
+                        else:
+                            db_item = ScrapedItem(
+                                title=title,
+                                image_url=item_data.get("image_url") or None,
+                                magnet_link=identifier,
+                                torrent_link=item_data.get("torrent_link") or None,
+                                tags=tags_str or None,
+                                source=source,
+                            )
+                            session.add(db_item)
+
+                        try:
+                            session.flush()
+                            new_count += 1
+                        except Exception:
+                            session.rollback()
+
+                session.commit()
+                print(f"[scraper_results] {source}: added {new_count} new items", flush=True)
+
+        except Exception as e:
+            print(f"[scraper_results_listener] Error: {e}", flush=True)
+
+
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
@@ -152,10 +259,14 @@ async def lifespan(app: FastAPI):
     # Start the arr config listener
     config_task = asyncio.create_task(arr_config_listener())
 
+    # Start the scraper results listener
+    scraper_task = asyncio.create_task(scraper_results_listener())
+
     yield
 
     listener_task.cancel()
     config_task.cancel()
+    scraper_task.cancel()
     shutdown_scheduler()
 
 app = FastAPI(title="ServerToolPython API", lifespan=lifespan)
