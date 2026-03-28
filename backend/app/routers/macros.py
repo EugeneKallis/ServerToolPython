@@ -104,7 +104,7 @@ async def execute_macro(id: int, payload: Optional[ExecuteMacroPayload] = None, 
                 "run_id": run_id,
                 "is_last": is_last
             })
-            await r.publish("agent_commands", payload_data)
+            await r.lpush("agent_commands", payload_data)
     finally:
         await r.close()
         
