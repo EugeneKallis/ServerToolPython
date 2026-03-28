@@ -93,7 +93,6 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                 <ul className='space-y-0.5'>
                   {[
                     { href: '/tools/arr-searcher', label: 'Arr Searcher' },
-                    { href: '/chat', label: 'Chat' },
                     { href: '/scraper', label: 'Scraper' },
                   ].map(({ href, label }) => (
                     <li key={href}>

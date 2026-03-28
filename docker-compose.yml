@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
@@ -62,10 +62,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - REDIS_URL=${REDIS_URL}
-      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - redis
-      - db
 
   scraper:
     build:
@@ -75,10 +73,8 @@ services:
       - ./scraper:/app
     environment:
       - REDIS_URL=${REDIS_URL}
-      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - redis
-      - db
 
   arr_searcher:
     build:
@@ -97,7 +93,7 @@ services:
       dockerfile: Dockerfile.dev
     volumes:
       - ./magnet_bridge:/app
-      - /mnt:/mnt:rshared
+      # - /mnt:/mnt:rshared
     environment:
       - DECYPHARR_URL=${DECYPHARR_URL:-http://192.168.1.99:8282}
       - TORRENT_DEST_DIR=${TORRENT_DEST_DIR:-/mnt/debrid/media}
