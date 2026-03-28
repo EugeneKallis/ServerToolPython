@@ -33,6 +33,7 @@ class TaskManager:
 
 
 task_manager = TaskManager()
+AGENT_ID = str(uuid.uuid4())
 
 
 async def execute_and_stream(command: str, macro_name: str, r: redis.Redis, run_id: str, is_last: bool = True):
