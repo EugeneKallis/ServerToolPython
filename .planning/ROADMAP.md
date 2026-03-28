@@ -1,6 +1,6 @@
-# Roadmap: Agent Count Display
+# Roadmap: Agent Count Display + Macro Sequential Execution
 
-**Milestone:** v1.0 — Agent Count in Terminal Footer
+**Milestone:** v1.0 — Agent Count in Terminal Footer + Macro Sequential Execution
 **Requirements:** .planning/REQUIREMENTS.md
 **Config:** coarse granularity, interactive mode
 
@@ -23,6 +23,21 @@
 - [ ] Killing Redis mid-run does not crash the agent worker — command execution continues and heartbeat errors are swallowed silently
 - [ ] A failed `GET /api/agent/count` fetch in the frontend does not reset the displayed count to 0 — the previous value is retained
 - [ ] `redis-cli SCAN 0 MATCH "agent:heartbeat:*"` returns one key per running agent and zero keys within 30s of all agents stopping
+
+### Phase 2: Macro Sequential Execution
+
+**Goal:** A macro's commands execute as a single ordered shell script on one agent — `echo hello; sleep 5; echo world` runs in sequence with stop-on-failure behavior.
+
+**Requirements:** EXEC-01, EXEC-02
+
+**Plans:**
+1. Macro execution bundling — refactor `execute_macro` in `backend/app/routers/macros.py` to join all command strings into a single `bash -e` script and dispatch as one `lpush` instead of N
+
+**Success Criteria:**
+- [ ] A macro with commands `echo hello`, `sleep 5`, `echo world` produces terminal output in order: "hello" → pause 5s → "world"
+- [ ] A macro with a failing command (e.g. `exit 1`) stops execution — subsequent commands do not run and the run is marked failed
+- [ ] Single-command macros behave identically to before (no regression)
+- [ ] The scheduler triggers macros with the same bundled behavior (not just manual execution)
 
 ---
 *Created: 2026-03-28*

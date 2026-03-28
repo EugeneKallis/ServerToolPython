@@ -1,4 +1,4 @@
-# Requirements: Agent Count Display
+# Requirements: Agent Count Display + Macro Sequential Execution
 
 **Defined:** 2026-03-28
 **Core Value:** Commands dispatched from the UI must execute reliably on agent containers and stream output back in real time.
@@ -20,6 +20,11 @@
 - [ ] **UI-05**: On fetch errors, the previous count value is retained — state is never reset to 0 on a failed request
 - [ ] **UI-06**: `useAgentCount` hook at `frontend/app/hooks/useAgentCount.ts` polls `GET /api/agent/count` every 15 seconds and returns `number | null`
 
+### Macro Execution
+
+- [ ] **EXEC-01**: A macro with multiple commands is dispatched as a single `bash` script (one `lpush`) rather than N separate messages — commands run sequentially on the same agent in order
+- [ ] **EXEC-02**: The script uses `set -e` semantics — if any command exits non-zero, subsequent commands do not run and the macro is marked failed
+
 ## v2 Requirements
 
 ### Future Enhancements
@@ -36,6 +41,7 @@
 | Agent-specific command routing | Requires significant BRPOP architecture changes |
 | WebSocket push for count updates | Unnecessary coupling; 15s poll is sufficient for container lifecycle events |
 | Agent restart/stop controls | Separate feature, not part of this request |
+| Per-command error recovery | Stop-on-failure is sufficient for v1 |
 
 ## Traceability
 
@@ -50,10 +56,12 @@
 | UI-04 | Phase 1 | Pending |
 | UI-05 | Phase 1 | Pending |
 | UI-06 | Phase 1 | Pending |
+| EXEC-01 | Phase 2 | Pending |
+| EXEC-02 | Phase 2 | Pending |
 
 **Coverage:**
-- v1 requirements: 9 total
-- Mapped to phases: 9
+- v1 requirements: 11 total
+- Mapped to phases: 11
 - Unmapped: 0 ✓
 
 ---

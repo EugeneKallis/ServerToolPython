@@ -26,6 +26,7 @@ Commands dispatched from the UI must execute reliably on agent containers and st
 
 - [ ] Agent count display in the terminal footer — show how many agent containers are currently live, alongside the existing connection status dot
 - [ ] Agent heartbeat mechanism — each agent periodically writes a short-lived Redis key so the backend can count live agents
+- [ ] Macro commands execute sequentially as a single bash script (stop-on-failure) — currently dispatched as N independent queue messages
 
 ### Out of Scope
 

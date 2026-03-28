@@ -16,6 +16,7 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 | Phase | Name | Status |
 |-------|------|--------|
 | 1 | Heartbeat, Endpoint, and Footer Display | Not started |
+| 2 | Macro Sequential Execution | Not started |
 
 ## Next Action
 
