@@ -29,6 +29,10 @@ export default function ArrSearcherPage() {
   const [importText, setImportText] = useState('');
   const [importing, setImporting] = useState(false);
 
+  // Export state
+  const [showExport, setShowExport] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   // Global search load state
   const [searchingAll, setSearchingAll] = useState(false);
   const [searchingId, setSearchingId] = useState<number | null>(null);
@@ -209,7 +213,14 @@ export default function ArrSearcherPage() {
             <div className="p-4 border-t border-outline-variant flex flex-col gap-4 bg-surface-container-low">
               <div className="flex items-center justify-end gap-2">
                 <button
-                  onClick={() => setShowImport(v => !v)}
+                  onClick={() => { setShowExport(v => !v); setShowImport(false); }}
+                  disabled={instances.length === 0}
+                  className="flex items-center text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest px-3 py-1.5 border border-outline-variant transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {showExport ? 'Close Export' : '↑ Export'}
+                </button>
+                <button
+                  onClick={() => { setShowImport(v => !v); setShowExport(false); }}
                   className="flex items-center text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest px-3 py-1.5 border border-outline-variant transition-colors"
                 >
                   {showImport ? 'Cancel Import' : '↓ Bulk Import'}
@@ -221,6 +232,50 @@ export default function ArrSearcherPage() {
                   <Plus size={14} className="mr-1" /> Add Instance
                 </button>
               </div>
+
+              {showExport && (
+                <div className="border border-outline-variant bg-surface-container p-3 space-y-2">
+                  <p className="text-xs text-zinc-400">
+                    Copy or save your instances. Format matches bulk import: <span className="text-zinc-200 font-medium">name / URL / API key</span> per group.
+                  </p>
+                  <textarea
+                    readOnly
+                    value={instances.map(inst => `${inst.name}\n${inst.url}\n${inst.api_key}`).join('\n\n')}
+                    rows={8}
+                    className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm text-on-surface font-mono focus:border-primary-fixed-dim focus:outline-none resize-y"
+                    onClick={e => (e.target as HTMLTextAreaElement).select()}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        const text = instances.map(inst => `${inst.name}\n${inst.url}\n${inst.api_key}`).join('\n\n');
+                        const blob = new Blob([text], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'arr-instances.txt';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="px-4 py-2 text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant transition-colors"
+                    >
+                      Save to File
+                    </button>
+                    <button
+                      onClick={() => {
+                        const text = instances.map(inst => `${inst.name}\n${inst.url}\n${inst.api_key}`).join('\n\n');
+                        navigator.clipboard.writeText(text).then(() => {
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        });
+                      }}
+                      className="px-4 py-2 text-xs font-mono bg-primary-fixed-dim text-on-primary-fixed hover:bg-primary-container transition-colors"
+                    >
+                      {copied ? 'Copied!' : 'Copy to Clipboard'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {showImport && (
                 <div className="border border-outline-variant bg-surface-container p-3 space-y-2">
@@ -269,9 +324,9 @@ export default function ArrSearcherPage() {
           {instances.map(inst => (
             <div
               key={inst.id}
-              className={`flex flex-col sm:flex-row items-start sm:items-center justify-between bg-surface-container border border-outline-variant p-4 gap-4 transition-opacity ${!inst.enabled ? 'opacity-50 grayscale' : ''}`}
+              className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-surface-container border border-outline-variant p-4 gap-4"
             >
-              <div className="flex items-center gap-4 min-w-0">
+              <div className={`flex items-center gap-4 min-w-0 transition-opacity ${!inst.enabled ? 'opacity-40 grayscale' : ''}`}>
                 <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded tracking-wider shrink-0 ${typeColor(inst.type)}`}>
                   {inst.type}
                 </span>
@@ -284,7 +339,7 @@ export default function ArrSearcherPage() {
               <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t border-outline-variant sm:border-0 pl-0 sm:pl-4">
                 <button
                   onClick={() => handleSearchInstance(inst.id)}
-                  disabled={searchingId === inst.id || !inst.enabled}
+                  disabled={searchingId === inst.id}
                   className="mr-auto sm:mr-0 flex items-center gap-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant px-3 py-1.5 disabled:opacity-40 transition-colors"
                 >
                   <RefreshCw size={12} className={searchingId === inst.id ? 'animate-spin' : ''}/>

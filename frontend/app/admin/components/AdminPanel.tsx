@@ -720,12 +720,28 @@ export function AdminPanel() {
                     Cancel
                   </button>
                   {ioModal === 'export' && (
-                    <button
-                      onClick={handleCopy}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors"
-                    >
-                      {ioCopied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy JSON</>}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          const blob = new Blob([ioJson], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'macro-groups.json';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors"
+                      >
+                        <Download size={13} /> Save to File
+                      </button>
+                      <button
+                        onClick={handleCopy}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors"
+                      >
+                        {ioCopied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy JSON</>}
+                      </button>
+                    </>
                   )}
                   {ioModal === 'import' && !ioConfirm && (
                     <button
