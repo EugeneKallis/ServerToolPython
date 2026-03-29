@@ -147,6 +147,11 @@ function QuickLinksPanel({ showSuccess }: { showSuccess: (m: string) => void }) 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<QuickLink | null>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   const refresh = useCallback(async () => {
     const res = await fetch('/api/quick-links');
     if (res.ok) setLinks(await res.json());
@@ -177,13 +182,31 @@ function QuickLinksPanel({ showSuccess }: { showSuccess: (m: string) => void }) 
     showSuccess('Link deleted.');
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = links.findIndex(l => l.id === active.id);
+    const newIndex = links.findIndex(l => l.id === over.id);
+    const reordered = arrayMove(links, oldIndex, newIndex);
+    setLinks(reordered);
+    await Promise.all(
+      reordered.map((link, index) =>
+        fetch(`/api/quick-links/${link.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ord: index }),
+        })
+      )
+    );
+  };
+
   return (
-    <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col h-full">
+    <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Quick Links</h2>
+        <h2 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline">Quick Links</h2>
         <button
           onClick={() => { setEditing(null); setIsModalOpen(true); }}
-          className="flex items-center text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded"
+          className="flex items-center text-xs font-mono text-primary-fixed hover:text-primary-container bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
         >
           <Plus size={14} className="mr-1" /> Add Link
         </button>
@@ -191,24 +214,22 @@ function QuickLinksPanel({ showSuccess }: { showSuccess: (m: string) => void }) 
 
       <div className="flex-1 overflow-y-auto pr-1 space-y-2">
         {links.length === 0 && (
-          <p className="text-zinc-500 text-sm mt-4 text-center">No quick links yet.</p>
+          <p className="text-outline text-xs font-mono mt-4 text-center">No quick links yet.</p>
         )}
-        {links.map(link => (
-          <div key={link.id} className="flex items-center justify-between rounded-lg bg-zinc-800/60 border border-zinc-700/50 px-3 py-2.5 gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-zinc-100 truncate">{link.label}</p>
-              <p className="text-xs text-zinc-500 truncate">{link.url}</p>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <button onClick={() => { setEditing(link); setIsModalOpen(true); }} className="text-zinc-400 hover:text-blue-400 p-1 rounded hover:bg-zinc-700">
-                <Pencil size={14} />
-              </button>
-              <button onClick={() => handleDelete(link.id)} className="text-zinc-400 hover:text-red-400 p-1 rounded hover:bg-zinc-700">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          </div>
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={links.map(l => l.id)} strategy={verticalListSortingStrategy}>
+            {links.map(link => (
+              <SortableListItem
+                key={link.id}
+                id={link.id}
+                name={link.label}
+                subtitle={link.url}
+                onEdit={() => { setEditing(link); setIsModalOpen(true); }}
+                onDelete={() => handleDelete(link.id)}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
       </div>
 
       {isModalOpen && (
