@@ -12,7 +12,7 @@ steps:
       branch: develop
       event: [ push, manual ]
     commands:
-      - echo "dev-$(date +'%m.%d.%H:%M').${CI_COMMIT_SHA:0:8}" > .tags
+      - echo "dev-$(date +'%m.%d.%H-%M').${CI_COMMIT_SHA:0:8}" > .tags
 
   - name: build-frontend
     image: plugins/docker
