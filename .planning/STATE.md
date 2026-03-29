@@ -35,3 +35,11 @@ See: .planning/PROJECT.md (updated 2026-03-28)
 ## Next Action
 
 Run `/gsd:plan-phase 1` to begin planning Phase 1.
+
+## Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260329-du9 | Add a full-screen text viewer modal that opens when clicking on the terminal output box on the main page | 2026-03-29 | a8b9409 | [260329-du9-add-a-full-screen-text-viewer-modal-that](./quick/260329-du9-add-a-full-screen-text-viewer-modal-that/) |
+
+**Last activity:** 2026-03-29 - Completed quick task 260329-du9: Add a full-screen text viewer modal that opens when clicking on the terminal output box on the main page
