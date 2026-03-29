@@ -138,6 +138,95 @@ function ChatHistoryPanel({ showSuccess }: { showSuccess: (m: string) => void })
   );
 }
 
+// ─── Quick Links sub-panel ───────────────────────────────────────────────────
+
+interface QuickLink { id: number; label: string; url: string; ord: number; }
+
+function QuickLinksPanel({ showSuccess }: { showSuccess: (m: string) => void }) {
+  const [links, setLinks] = useState<QuickLink[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editing, setEditing] = useState<QuickLink | null>(null);
+
+  const refresh = useCallback(async () => {
+    const res = await fetch('/api/quick-links');
+    if (res.ok) setLinks(await res.json());
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const handleSave = async (values: Record<string, string>) => {
+    const isEditing = !!editing;
+    const url = isEditing ? `/api/quick-links/${editing.id}` : '/api/quick-links';
+    const method = isEditing ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: values.label, url: values.url, ord: isEditing ? editing.ord : links.length }),
+    });
+    if (!res.ok) { alert('Error saving link'); return; }
+    setIsModalOpen(false);
+    setEditing(null);
+    await refresh();
+    showSuccess(isEditing ? 'Link updated.' : 'Link added.');
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this link?')) return;
+    await fetch(`/api/quick-links/${id}`, { method: 'DELETE' });
+    await refresh();
+    showSuccess('Link deleted.');
+  };
+
+  return (
+    <div className="flex-1 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">Quick Links</h2>
+        <button
+          onClick={() => { setEditing(null); setIsModalOpen(true); }}
+          className="flex items-center text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded"
+        >
+          <Plus size={14} className="mr-1" /> Add Link
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+        {links.length === 0 && (
+          <p className="text-zinc-500 text-sm mt-4 text-center">No quick links yet.</p>
+        )}
+        {links.map(link => (
+          <div key={link.id} className="flex items-center justify-between rounded-lg bg-zinc-800/60 border border-zinc-700/50 px-3 py-2.5 gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-zinc-100 truncate">{link.label}</p>
+              <p className="text-xs text-zinc-500 truncate">{link.url}</p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => { setEditing(link); setIsModalOpen(true); }} className="text-zinc-400 hover:text-blue-400 p-1 rounded hover:bg-zinc-700">
+                <Pencil size={14} />
+              </button>
+              <button onClick={() => handleDelete(link.id)} className="text-zinc-400 hover:text-red-400 p-1 rounded hover:bg-zinc-700">
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isModalOpen && (
+        <ItemForm
+          title={editing ? 'Edit Link' : 'New Quick Link'}
+          fields={[
+            { name: 'label', label: 'Label', placeholder: 'e.g. Plex' },
+            { name: 'url', label: 'URL', placeholder: 'https://...' },
+          ]}
+          initialValues={editing ? { label: editing.label, url: editing.url } : {}}
+          onSubmit={handleSave}
+          onCancel={() => { setIsModalOpen(false); setEditing(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Main AdminPanel ─────────────────────────────────────────────────────────
 
 export function AdminPanel() {
@@ -146,7 +235,7 @@ export function AdminPanel() {
   const [selectedMacro, setSelectedMacro] = useState<Macro | null>(null);
 
   // Top-level tab
-  const [activeTab, setActiveTab] = useState<'macros' | 'chat'>('macros');
+  const [activeTab, setActiveTab] = useState<'macros' | 'chat' | 'links'>('macros');
 
   // Modals state
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -483,7 +572,7 @@ export function AdminPanel() {
 
       {/* Tab switcher */}
       <div className="flex gap-1 border-b border-outline-variant pb-3">
-        {(['macros', 'chat'] as const).map((tab) => (
+        {(['macros', 'chat', 'links'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -493,7 +582,7 @@ export function AdminPanel() {
                 : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high'
             }`}
           >
-            {tab === 'macros' ? 'Macro Groups' : 'Chat History'}
+            {tab === 'macros' ? 'Macro Groups' : tab === 'chat' ? 'Chat History' : 'Quick Links'}
           </button>
         ))}
       </div>
@@ -501,6 +590,11 @@ export function AdminPanel() {
       {/* ── Chat History Tab ── */}
       {activeTab === 'chat' && (
         <ChatHistoryPanel showSuccess={showSuccess} />
+      )}
+
+      {/* ── Quick Links Tab ── */}
+      {activeTab === 'links' && (
+        <QuickLinksPanel showSuccess={showSuccess} />
       )}
 
       {/* ── Macros Tab ── */}

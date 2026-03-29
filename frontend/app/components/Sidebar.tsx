@@ -3,10 +3,18 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 
 import { useTerminal } from "../context/TerminalContext";
 import { useMacros, MacroGroup, Macro } from "../context/MacroContext";
 import { MacroArgumentsModal } from "./MacroArgumentsModal";
+
+interface QuickLink {
+  id: number;
+  label: string;
+  url: string;
+  ord: number;
+}
 
 export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const router = useRouter();
@@ -14,6 +22,14 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
   const { macroGroups, loading } = useMacros();
 
   const [confirmMacro, setConfirmMacro] = useState<Macro | null>(null);
+  const [quickLinks, setQuickLinks] = useState<QuickLink[]>([]);
+
+  useEffect(() => {
+    fetch('/api/quick-links')
+      .then(r => r.ok ? r.json() : [])
+      .then(setQuickLinks)
+      .catch(() => {});
+  }, []);
 
   const handleExecuteMacro = async (macro: Macro, selectedArgs?: Record<string, number[]>) => {
     router.push("/");
@@ -131,6 +147,29 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                   ))}
                 </ul>
               </div>
+              {quickLinks.length > 0 && (
+                <div className='pt-4 border-t border-outline-variant'>
+                  <h3 className='px-2 mb-2 text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-outline'>
+                    Quick Links
+                  </h3>
+                  <ul className='space-y-0.5'>
+                    {quickLinks.map(link => (
+                      <li key={link.id}>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={onClose}
+                          className='flex items-center justify-between px-3 py-2 text-sm font-mono text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary-fixed border-l-2 border-transparent hover:border-primary-fixed-dim group'
+                        >
+                          <span className="truncate">{link.label}</span>
+                          <ExternalLink className='h-3 w-3 opacity-0 group-hover:opacity-100 flex-shrink-0 ml-2 transition-opacity' />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </nav>
