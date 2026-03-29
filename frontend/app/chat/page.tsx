@@ -420,10 +420,10 @@ export default function ChatPage() {
         {/* Header */}
         <div className="h-16 border-b border-outline-variant bg-surface-container-low">
           <div className="h-full flex items-center justify-between px-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0 overflow-hidden">
               <button
                 onClick={() => setIsHistoryOpen(v => !v)}
-                className="p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors border border-outline-variant"
+                className="flex-shrink-0 p-1.5 text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors border border-outline-variant"
                 title={isHistoryOpen ? 'Hide history' : 'Show history'}
               >
                 {isHistoryOpen
@@ -431,10 +431,10 @@ export default function ChatPage() {
                   : <PanelLeftOpen className="h-4 w-4" />
                 }
               </button>
-              <Bot className="h-4 w-4 text-primary-fixed-dim" />
-              <span className="font-headline font-bold text-sm tracking-wide text-on-surface uppercase">Chat</span>
+              <Bot className="flex-shrink-0 h-4 w-4 text-primary-fixed-dim" />
+              <span className="flex-shrink-0 font-headline font-bold text-sm tracking-wide text-on-surface uppercase">Chat</span>
               {selectedModel && (
-                <span className="hidden sm:inline bg-surface-container-highest px-3 py-0.5 text-[10px] font-mono text-on-surface-variant border border-outline-variant">
+                <span className="hidden sm:inline max-w-[160px] truncate bg-surface-container-highest px-3 py-0.5 text-[10px] font-mono text-on-surface-variant border border-outline-variant">
                   {selectedModel}
                 </span>
               )}
