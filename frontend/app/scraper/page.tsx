@@ -380,7 +380,7 @@ export default function ScraperPage() {
       </div>{/* end controls */}
 
       {/* Items — snap scroll */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-scroll snap-y snap-mandatory">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory">
         {loading && (
           <div className="h-full flex items-center justify-center text-outline text-xs font-mono">Loading…</div>
         )}
@@ -393,7 +393,7 @@ export default function ScraperPage() {
           </div>
         )}
         {filtered.map((item, index) => (
-          <div key={item.id} className="h-full snap-start">
+          <div key={item.id} className="h-full w-full snap-start overflow-hidden">
             <ItemCard
               item={item}
               isActive={index === activeIndex}
