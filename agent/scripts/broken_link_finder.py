@@ -1,9 +1,9 @@
 import os
 import sys
+import argparse
+import json as json_mod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Directory to scan
-SCAN_DIR = "/mnt/debrid/media/special"
 # Number of concurrent workers
 MAX_WORKERS = 20
 # Bytes to read to verify content is accessible
@@ -38,36 +38,61 @@ def verify_link(path: str):
         return (path, "ERROR", str(e))
 
 def main():
-    if not os.path.exists(SCAN_DIR):
-        print(f"Error: Directory {SCAN_DIR} not found.")
+    parser = argparse.ArgumentParser(
+        description='Find broken symlinks in a directory.'
+    )
+    parser.add_argument(
+        '--scan-dir', type=str, default=None,
+        help='Directory to scan. Falls back to BLF_SCAN_DIR env var, then /mnt/debrid/media/special.'
+    )
+    parser.add_argument(
+        '--json', action='store_true',
+        help='Output results as JSON lines (one JSON object per broken link). Suppresses human-readable output.'
+    )
+    args = parser.parse_args()
+
+    # Resolve scan directory: arg -> env var -> hardcoded default
+    scan_dir = args.scan_dir or os.environ.get('BLF_SCAN_DIR') or '/mnt/debrid/media/special'
+    use_json = args.json
+
+    if not os.path.exists(scan_dir):
+        if not use_json:
+            print(f"Error: Directory {scan_dir} not found.")
         return
 
-    print(f"Scanning {SCAN_DIR} for broken links...")
+    if not use_json:
+        print(f"Scanning {scan_dir} for broken links...")
+
     files_to_check = []
-    for root, _, files in os.walk(SCAN_DIR):
+    for root, _, files in os.walk(scan_dir):
         for f in files:
             files_to_check.append(os.path.join(root, f))
 
     total_files = len(files_to_check)
-    print(f"Found {total_files} files. Verifying integrity with {MAX_WORKERS} workers...")
+    if not use_json:
+        print(f"Found {total_files} files. Verifying integrity with {MAX_WORKERS} workers...")
 
     broken_count = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         future_to_file = {executor.submit(verify_link, f): f for f in files_to_check}
-        
+
         for future in as_completed(future_to_file):
             result = future.result()
             if result:
                 path, status, msg = result
-                print(f"[{status}] {path} -> {msg}")
+                if use_json:
+                    print(json_mod.dumps({"path": path, "status": status, "msg": msg}))
+                else:
+                    print(f"[{status}] {path} -> {msg}")
                 broken_count += 1
 
-    print("-" * 40)
-    print(f"Scan complete. Checked {total_files} files.")
-    if broken_count > 0:
-        print(f"FAILED: Found {broken_count} broken or unreadable links.")
-    else:
-        print("SUCCESS: All links are healthy.")
+    if not use_json:
+        print("-" * 40)
+        print(f"Scan complete. Checked {total_files} files.")
+        if broken_count > 0:
+            print(f"FAILED: Found {broken_count} broken or unreadable links.")
+        else:
+            print("SUCCESS: All links are healthy.")
 
 if __name__ == "__main__":
     main()
