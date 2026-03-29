@@ -89,6 +89,13 @@ class ScriptRun(Base):
     success: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
     output: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
+class ShellHistory(Base):
+    __tablename__ = "shell_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    command: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 class MacroSchedule(Base):
     __tablename__ = "macro_schedule"
 
