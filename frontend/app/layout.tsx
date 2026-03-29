@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,6 +7,14 @@ export const metadata: Metadata = {
     template: "ServerTool - %s",
   },
   description: "Manage and execute shell commands via a streaming terminal interface.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#131313",
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 import Navigation from "./components/Navigation";
@@ -22,7 +30,6 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#131313" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
       <body className="antialiased min-h-screen bg-surface text-on-surface font-body">
