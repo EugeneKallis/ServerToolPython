@@ -126,6 +126,85 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [expandedOutput, setExpandedOutput] = useState<{ lines: string[]; command?: string } | null>(null);
 
+  // Model description lookup — matched by prefix of the model name
+  const MODEL_INFO: { match: string; tag: string; desc: string }[] = [
+    { match: 'deepseek-r1',       tag: 'Reasoning',  desc: 'Chain-of-thought reasoning, strong at math & logic problems' },
+    { match: 'deepseek-coder',    tag: 'Coding',     desc: 'Optimized for code generation, completion, and debugging' },
+    { match: 'deepseek',          tag: 'General',    desc: 'DeepSeek general-purpose assistant' },
+    { match: 'qwq',               tag: 'Reasoning',  desc: 'Strong reasoning and math, thinks step-by-step before answering' },
+    { match: 'qwen2.5-coder',     tag: 'Coding',     desc: 'Alibaba code model — generation, explanation, and refactoring' },
+    { match: 'qwen2.5',           tag: 'General',    desc: 'Alibaba general assistant with strong multilingual support' },
+    { match: 'qwen',              tag: 'General',    desc: 'Alibaba Qwen general assistant' },
+    { match: 'llama3.3',          tag: 'General',    desc: 'Meta Llama 3.3 — well-rounded instruction-following model' },
+    { match: 'llama3.2',          tag: 'General',    desc: 'Meta Llama 3.2 — fast and efficient general assistant' },
+    { match: 'llama3.1',          tag: 'General',    desc: 'Meta Llama 3.1 — solid all-rounder for chat and reasoning' },
+    { match: 'llama3',            tag: 'General',    desc: 'Meta Llama 3 — reliable general-purpose chat model' },
+    { match: 'llama2',            tag: 'General',    desc: 'Meta Llama 2 — older but stable general assistant' },
+    { match: 'llama',             tag: 'General',    desc: 'Meta Llama general assistant' },
+    { match: 'mistral-nemo',      tag: 'General',    desc: 'Mistral Nemo — compact, fast, great for quick tasks' },
+    { match: 'mistral-large',     tag: 'General',    desc: 'Mistral Large — high capability, strong at complex reasoning' },
+    { match: 'mistral-small',     tag: 'General',    desc: 'Mistral Small — efficient and capable for everyday tasks' },
+    { match: 'mistral',           tag: 'General',    desc: 'Mistral general assistant — fast with solid reasoning' },
+    { match: 'mixtral',           tag: 'General',    desc: 'Mistral MoE model — high quality, good at long context' },
+    { match: 'codellama',         tag: 'Coding',     desc: 'Meta code model built on Llama — code gen and completion' },
+    { match: 'codegemma',         tag: 'Coding',     desc: 'Google code model — code generation and completion' },
+    { match: 'gemma2',            tag: 'General',    desc: 'Google Gemma 2 — efficient and capable general assistant' },
+    { match: 'gemma',             tag: 'General',    desc: 'Google Gemma — lightweight general assistant' },
+    { match: 'phi4',              tag: 'General',    desc: 'Microsoft Phi-4 — small but punches above its weight' },
+    { match: 'phi3.5',            tag: 'General',    desc: 'Microsoft Phi-3.5 — efficient small model, great for speed' },
+    { match: 'phi3',              tag: 'General',    desc: 'Microsoft Phi-3 — compact model with strong reasoning' },
+    { match: 'phi',               tag: 'General',    desc: 'Microsoft Phi family — small, fast, surprisingly capable' },
+    { match: 'solar',             tag: 'General',    desc: 'Upstage Solar — strong Korean/English bilingual model' },
+    { match: 'wizardlm2',         tag: 'General',    desc: 'WizardLM2 — instruction-tuned for complex instructions' },
+    { match: 'command-r-plus',    tag: 'General',    desc: 'Cohere Command R+ — RAG-optimized, strong at long docs' },
+    { match: 'command-r',         tag: 'General',    desc: 'Cohere Command R — good at retrieval-augmented tasks' },
+    { match: 'starcoder2',        tag: 'Coding',     desc: 'BigCode StarCoder2 — multi-language code completion' },
+    { match: 'starcoder',         tag: 'Coding',     desc: 'BigCode StarCoder — code generation and completion' },
+    { match: 'nomic-embed-text',  tag: 'Embedding',  desc: 'Text embedding model — not for chat, use for vector search' },
+    { match: 'mxbai-embed',       tag: 'Embedding',  desc: 'Text embedding model — not for chat, use for vector search' },
+    { match: 'all-minilm',        tag: 'Embedding',  desc: 'Sentence embedding — not for chat, use for similarity search' },
+    { match: 'llava',             tag: 'Vision',     desc: 'Multimodal — can analyze images alongside text' },
+    { match: 'bakllava',          tag: 'Vision',     desc: 'Multimodal — image understanding with Mistral backbone' },
+    { match: 'moondream',         tag: 'Vision',     desc: 'Tiny vision model — lightweight image description' },
+    { match: 'yi',                tag: 'General',    desc: '01.AI Yi — strong multilingual model, good long context' },
+    { match: 'orca-mini',         tag: 'General',    desc: 'Orca Mini — small, fast model for simple tasks' },
+    { match: 'vicuna',            tag: 'General',    desc: 'Vicuna — Llama fine-tune, solid conversational model' },
+    { match: 'openchat',          tag: 'General',    desc: 'OpenChat — efficient open-source chat model' },
+    { match: 'neural-chat',       tag: 'General',    desc: 'Intel Neural Chat — optimized for Intel hardware' },
+    { match: 'tinyllama',         tag: 'General',    desc: 'TinyLlama — very small, very fast, limited capability' },
+    { match: 'smollm',            tag: 'General',    desc: 'SmolLM — extremely compact, runs anywhere' },
+  ];
+
+  const TAG_COLORS: Record<string, string> = {
+    Reasoning: 'text-purple-400 bg-purple-500/10',
+    Coding:    'text-blue-400 bg-blue-500/10',
+    Vision:    'text-pink-400 bg-pink-500/10',
+    Embedding: 'text-orange-400 bg-orange-500/10',
+    General:   'text-emerald-400 bg-emerald-500/10',
+  };
+
+  const getModelInfo = (name: string) => {
+    const lower = name.toLowerCase();
+    return MODEL_INFO.find(m => lower.startsWith(m.match)) ?? null;
+  };
+
+  // Slash commands registry
+  const SLASH_COMMANDS = [
+    { name: '/shell', description: 'Run a shell command on the agent' },
+  ];
+
+  // Shell command history + autocomplete
+  const [shellHistory, setShellHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  // Command picker (shown when input starts with / but no space yet)
+  const [cmdPickerIndex, setCmdPickerIndex] = useState(0);
+
+  // Derived display state
+  const showCmdPicker = input.startsWith('/') && !input.includes(' ');
+  const filteredCmds = SLASH_COMMANDS.filter(c => c.name.startsWith(input));
+  const showShellSuggestions = input.startsWith('/shell ') && shellHistory.length > 0 && (input === '/shell ' || historyIndex >= 0);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -158,6 +237,10 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
       })
       .catch(() => {});
     loadConversations();
+    fetch('/api/agent/shell/history')
+      .then(r => r.ok ? r.json() : [])
+      .then(setShellHistory)
+      .catch(() => {});
   }, []);
 
   const loadConversations = async () => {
@@ -210,9 +293,10 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
       setModels(names);
       if (names.length > 0) setSelectedModel(prev => {
         const saved = localStorage.getItem('chatTerminal.model');
-        const pick = (saved && names.includes(saved)) ? saved : names[0];
+        const valid = (m: string) => names.includes(m);
+        const pick = (saved && valid(saved)) ? saved : (prev && valid(prev)) ? prev : names[0];
         localStorage.setItem('chatTerminal.model', pick);
-        return prev || pick;
+        return pick;
       });
     } catch {}
   };
@@ -254,9 +338,30 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
     });
   };
 
+  const runShellCommand = async (command: string) => {
+    setInput('');
+    setHistoryIndex(-1);
+    // Optimistically update local history so suggestions are instant
+    setShellHistory(prev => [command, ...prev.filter(c => c !== command)].slice(0, 100));
+    await fetch('/api/agent/shell', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command }),
+    });
+  };
+
   const sendMessage = async () => {
     const text = input.trim();
-    if ((!text && attachments.length === 0) || isStreaming || !selectedModel) return;
+    if (!text && attachments.length === 0) return;
+
+    // /shell <command> — dispatch directly to agent, skip LLM
+    if (text.startsWith('/shell ')) {
+      const command = text.slice(7).trim();
+      if (command) await runShellCommand(command);
+      return;
+    }
+
+    if (isStreaming || !selectedModel) return;
 
     setInput('');
     const currentAttachments = attachments;
@@ -380,7 +485,54 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    // ── Command picker navigation (e.g. typing /s → shows /shell) ──
+    if (showCmdPicker && filteredCmds.length > 0) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setCmdPickerIndex(i => (i - 1 + filteredCmds.length) % filteredCmds.length);
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setCmdPickerIndex(i => (i + 1) % filteredCmds.length);
+        return;
+      }
+      if (e.key === 'Tab' || (e.key === 'Enter' && !e.shiftKey)) {
+        e.preventDefault();
+        setInput(filteredCmds[cmdPickerIndex].name + ' ');
+        setCmdPickerIndex(0);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setInput('');
+        return;
+      }
+    }
+
+    // ── Shell history navigation (after /shell is chosen) ──
+    if (input.startsWith('/shell ')) {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const next = Math.min(historyIndex + 1, Math.min(shellHistory.length - 1, 4));
+        setHistoryIndex(next);
+        setInput('/shell ' + shellHistory[next]);
+        return;
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (historyIndex <= 0) { setHistoryIndex(-1); setInput('/shell '); return; }
+        const next = historyIndex - 1;
+        setHistoryIndex(next);
+        setInput('/shell ' + shellHistory[next]);
+        return;
+      }
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   const handleClear = () => {
@@ -417,20 +569,34 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
               <ChevronDown size={9} className={`transition-transform ${showModelPicker ? 'rotate-180' : ''}`} />
             </button>
             {showModelPicker && (
-              <div className="absolute left-0 top-full mt-1 z-50 w-56 border border-outline-variant bg-surface-container-low shadow-xl">
-                {models.length > 0 ? models.map(m => (
-                  <button
-                    key={m}
-                    onClick={() => selectModel(m)}
-                    className={`w-full text-left px-3 py-2 text-xs font-mono transition-colors ${
-                      m === selectedModel
-                        ? 'bg-surface-container-high text-primary-fixed-dim border-l-2 border-primary-fixed-dim'
-                        : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                )) : (
+              <div className="absolute left-0 top-full mt-1 z-50 w-80 border border-outline-variant bg-surface-container-low shadow-xl max-h-96 overflow-y-auto">
+                {models.length > 0 ? models.map(m => {
+                  const info = getModelInfo(m);
+                  const isActive = m === selectedModel;
+                  return (
+                    <button
+                      key={m}
+                      onClick={() => selectModel(m)}
+                      className={`w-full text-left px-3 py-2.5 transition-colors border-l-2 ${
+                        isActive
+                          ? 'bg-surface-container-high border-primary-fixed-dim'
+                          : 'border-transparent hover:bg-surface-container hover:border-outline-variant'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-xs font-mono truncate ${isActive ? 'text-primary-fixed-dim' : 'text-on-surface-variant'}`}>{m}</span>
+                        {info && (
+                          <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0 ${TAG_COLORS[info.tag] ?? 'text-outline bg-surface-container-highest'}`}>
+                            {info.tag}
+                          </span>
+                        )}
+                      </div>
+                      {info && (
+                        <p className="text-[10px] font-mono text-outline mt-0.5 leading-snug">{info.desc}</p>
+                      )}
+                    </button>
+                  );
+                }) : (
                   <p className="px-3 py-2 text-xs font-mono text-outline">No models found</p>
                 )}
               </div>
@@ -646,6 +812,49 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
             ))}
           </div>
         )}
+        {/* Slash command picker */}
+        {showCmdPicker && filteredCmds.length > 0 && (
+          <div className="mb-1 border border-outline-variant bg-surface-container overflow-hidden">
+            <div className="px-3 py-1 text-[9px] font-mono text-outline uppercase tracking-wider border-b border-outline-variant">Commands</div>
+            {filteredCmds.map((cmd, i) => (
+              <button
+                key={cmd.name}
+                onMouseDown={e => { e.preventDefault(); setInput(cmd.name + ' '); setCmdPickerIndex(0); textareaRef.current?.focus(); }}
+                className={`w-full text-left flex items-center gap-3 px-3 py-2 text-xs font-mono transition-colors ${i === cmdPickerIndex ? 'bg-surface-container-high text-on-surface' : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'}`}
+              >
+                <span className="text-primary-fixed-dim font-bold shrink-0">{cmd.name}</span>
+                <span className="text-outline truncate">{cmd.description}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Shell history suggestions */}
+        {showShellSuggestions && (
+          <div className="mb-1 border border-outline-variant bg-surface-container overflow-hidden max-h-48 overflow-y-auto flex flex-col">
+            <div className="px-3 py-1 text-[9px] font-mono text-outline uppercase tracking-wider border-b border-outline-variant shrink-0">Recent commands — ↑↓ to navigate</div>
+            {[...shellHistory.slice(0, 5)].reverse().map((cmd, i) => {
+              // reversed index relative to shellHistory: bottom item = shellHistory[0] = historyIndex 0
+              const visibleCount = Math.min(shellHistory.length, 5);
+              const histIdx = visibleCount - 1 - i;
+              const isActive = histIdx === historyIndex;
+              return (
+                <button
+                  key={i}
+                  onMouseDown={e => { e.preventDefault(); setHistoryIndex(histIdx); setInput('/shell ' + cmd); textareaRef.current?.focus(); }}
+                  className={`w-full text-left px-3 py-1.5 text-xs font-mono truncate transition-colors border-l-2 ${
+                    isActive
+                      ? 'bg-surface-container-high text-on-surface border-primary-fixed-dim'
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high border-transparent'
+                  }`}
+                >
+                  {cmd}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="flex items-center border border-outline-variant bg-surface-container-lowest focus-within:border-primary-fixed-dim transition-colors">
           <input
             ref={fileInputRef}
@@ -666,17 +875,22 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => {
+              const val = e.target.value;
+              setInput(val);
+              setHistoryIndex(-1);
+              setCmdPickerIndex(0);
+            }}
             onKeyDown={handleKeyDown}
-            placeholder={selectedModel ? `Ask ${selectedModel}… (Enter to send)` : 'Connect to Ollama to chat…'}
-            disabled={!selectedModel || isStreaming}
+            placeholder={selectedModel ? `Ask ${selectedModel}… or /shell <command>` : '/shell <command> or connect Ollama to chat…'}
+            disabled={false}
             rows={1}
             className="flex-1 resize-none bg-transparent px-3 py-2 text-sm font-mono text-on-surface placeholder-outline focus:outline-none disabled:opacity-50 max-h-32 overflow-y-auto"
             style={{ minHeight: '38px' }}
           />
           <button
             onClick={sendMessage}
-            disabled={(!input.trim() && attachments.length === 0) || !selectedModel || isStreaming}
+            disabled={(!input.trim() && attachments.length === 0) || (!input.trim().startsWith('/shell ') && (!selectedModel || isStreaming))}
             className="flex-shrink-0 px-3 self-stretch flex items-center border-l border-outline-variant text-primary-fixed-dim hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             title="Send"
           >
