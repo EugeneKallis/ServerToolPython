@@ -94,6 +94,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                   {[
                     { href: '/tools/arr-searcher', label: 'Arr Searcher' },
                     { href: '/scraper', label: 'Scraper' },
+                    { href: '/tools/special-cleaner', label: 'Special Cleaner' },
                   ].map(({ href, label }) => (
                     <li key={href}>
                       <Link

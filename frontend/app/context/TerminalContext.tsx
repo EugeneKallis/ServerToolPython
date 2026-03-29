@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useRef, useState, useCallb
 export interface AgentFeedItem {
   type: 'agent';
   id: number;
+  runId?: string;
   command?: string;
   lines: string[];
   done: boolean;
@@ -62,7 +63,7 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
           setLines(prev => [...prev, `$ ${data.command}`]);
           const id = Date.now();
           if (runId) runIdToFeedId.current.set(runId, id);
-          setFeedItems(prev => [...prev, { type: 'agent', id, command: data.command, lines: [], done: false }]);
+          setFeedItems(prev => [...prev, { type: 'agent', id, runId, command: data.command, lines: [], done: false }]);
         } else if (data.status === 'completed') {
           if (data.exit_code !== 0) {
             setLines(prev => [...prev, `✗ exit ${data.exit_code}`]);

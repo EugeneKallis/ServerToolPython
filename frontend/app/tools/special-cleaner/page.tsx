@@ -8,6 +8,7 @@ export default function SpecialCleanerPage() {
   const { feedItems } = useTerminal();
 
   const [minSizeMb, setMinSizeMb] = useState(75);
+  const [dryRun, setDryRun] = useState(true);
   const [isRunning, setIsRunning] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [feedStartIndex, setFeedStartIndex] = useState<number | null>(null);
@@ -57,17 +58,13 @@ export default function SpecialCleanerPage() {
     }
   };
 
-  const handleDryRun = () => {
-    setConfirmDelete(false);
-    triggerRun(true);
-  };
-
-  const handleDeleteClick = () => {
-    if (!confirmDelete) {
+  const handleExecuteClick = () => {
+    if (!dryRun && !confirmDelete) {
       setConfirmDelete(true);
       return;
     }
-    triggerRun(false);
+    setConfirmDelete(false);
+    triggerRun(dryRun);
   };
 
   return (
@@ -99,27 +96,32 @@ export default function SpecialCleanerPage() {
           />
         </div>
 
-        <button
-          onClick={handleDryRun}
-          disabled={isRunning}
-          className="text-xs font-mono font-semibold border border-primary-fixed-dim text-primary-fixed-dim px-4 py-2 hover:bg-primary-fixed-dim/10 transition-colors disabled:opacity-40"
-        >
-          Dry Run
-        </button>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => { if (!isRunning) { setDryRun(!dryRun); setConfirmDelete(false); }}}>
+          <input
+            type="checkbox"
+            checked={dryRun}
+            onChange={(e) => { setDryRun(e.target.checked); setConfirmDelete(false); }}
+            disabled={isRunning}
+            className="w-4 h-4 cursor-pointer disabled:opacity-40"
+          />
+          <label className="text-xs font-mono font-semibold text-primary-fixed-dim cursor-pointer whitespace-nowrap">
+            Dry Run
+          </label>
+        </div>
 
         <button
-          onClick={handleDeleteClick}
+          onClick={handleExecuteClick}
           disabled={isRunning}
-          className="text-xs font-mono font-semibold bg-error-container text-on-error-container px-4 py-2 hover:bg-error transition-colors disabled:opacity-40"
+          className={`text-xs font-mono font-semibold px-4 py-2 transition-colors disabled:opacity-40 ${(!dryRun && confirmDelete) ? 'bg-error-container text-on-error-container hover:bg-error' : 'bg-primary-fixed text-on-primary-fixed hover:bg-primary-fixed-dim'}`}
         >
-          {confirmDelete ? 'Confirm Delete' : 'Run & Delete'}
+          {(!dryRun && confirmDelete) ? 'Confirm Execute (Live)' : 'Execute'}
         </button>
       </div>
 
       {/* Confirmation warning banner */}
-      {confirmDelete && (
+      {!dryRun && confirmDelete && (
         <div className="shrink-0 bg-error-container/20 border border-error/30 px-4 py-2 text-xs font-mono text-error">
-          This will permanently delete files. Click &apos;Run &amp; Delete&apos; again to confirm.
+          This will permanently delete files. Click &apos;Confirm Execute (Live)&apos; again to confirm.
         </div>
       )}
 
