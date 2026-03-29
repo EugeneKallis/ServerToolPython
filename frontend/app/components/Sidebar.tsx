@@ -29,7 +29,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
       .then(r => r.ok ? r.json() : [])
       .then(setQuickLinks)
       .catch(() => {});
-  }, []);
+  }, [isOpen]);
 
   const handleExecuteMacro = async (macro: Macro, selectedArgs?: Record<string, number[]>) => {
     router.push("/");
