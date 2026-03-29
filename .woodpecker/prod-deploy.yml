@@ -6,6 +6,14 @@ labels:
   type: builder
 
 steps:
+  - name: generate-tag
+    image: alpine:latest
+    when:
+      branch: main
+      event: [ push, manual ]
+    commands:
+      - echo "$(date +'%m.%d.%H-%M').${CI_COMMIT_SHA:0:8}" > .tags
+
   # 1. Build and push Backend
   - name: publish-backend
     image: plugins/docker
@@ -14,7 +22,6 @@ steps:
       event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-backend
-      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: backend/Dockerfile
       context: backend
       daemon_off: true
@@ -31,7 +38,6 @@ steps:
       event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-frontend
-      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: frontend/Dockerfile
       context: frontend
       daemon_off: true
@@ -48,7 +54,6 @@ steps:
       event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-agent
-      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: agent/Dockerfile
       context: agent
       daemon_off: true
@@ -65,7 +70,6 @@ steps:
       event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-scraper
-      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: scraper/Dockerfile
       context: scraper
       daemon_off: true
@@ -82,7 +86,6 @@ steps:
       event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-arr-searcher
-      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: arr_searcher/Dockerfile
       context: arr_searcher
       daemon_off: true
@@ -99,7 +102,6 @@ steps:
       event: [ push, manual ]
     settings:
       repo: eugenekallis/servertoolpython-magnet-bridge
-      tags: ${CI_COMMIT_SHA:0:8}
       dockerfile: magnet_bridge/Dockerfile
       context: magnet_bridge
       daemon_off: true
@@ -122,11 +124,12 @@ steps:
       - ssh-keyscan github.com >> ~/.ssh/known_hosts
       - git clone git@github.com:EugeneKallis/kubernetes-cluster.git infra
       - cd infra
-      - 'yq -i ".global.image.tag = \"${CI_COMMIT_SHA:0:8}\"" charts/servertool-python/values-prod.yaml'
+      - 'export TAG=$(cat ../.tags)'
+      - 'yq -i ".global.image.tag = \"$TAG\"" charts/servertool-python/values-prod.yaml'
       - git add .
       - git config user.name "Woodpecker CI"
       - git config user.email "woodpecker@cluster.lan"
-      - 'git commit -m "chore: deploy prod ${CI_COMMIT_SHA:0:8}"'
+      - 'git commit -m "chore: deploy prod $TAG"'
       - git push origin main
     environment:
       GIT_SSH_KEY:
