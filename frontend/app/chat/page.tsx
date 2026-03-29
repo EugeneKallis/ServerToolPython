@@ -434,7 +434,7 @@ export default function ChatPage() {
               <Bot className="flex-shrink-0 h-4 w-4 text-primary-fixed-dim" />
               <span className="flex-shrink-0 font-headline font-bold text-sm tracking-wide text-on-surface uppercase">Chat</span>
               {selectedModel && (
-                <span className="hidden sm:inline max-w-[160px] truncate bg-surface-container-highest px-3 py-0.5 text-[10px] font-mono text-on-surface-variant border border-outline-variant">
+                <span className="hidden sm:inline-block max-w-[160px] truncate bg-surface-container-highest px-3 py-0.5 text-[10px] font-mono text-on-surface-variant border border-outline-variant">
                   {selectedModel}
                 </span>
               )}
