@@ -10,7 +10,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
   const closeSidebar = () => setIsSidebarOpen(false);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden flex-col lg:flex-row">
+    <div className="flex h-[100dvh] w-full overflow-hidden flex-col lg:flex-row">
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
 
       {/* Mobile top bar — hidden on desktop */}

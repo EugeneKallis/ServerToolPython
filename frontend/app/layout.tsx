@@ -32,7 +32,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
       </head>
-      <body className="antialiased min-h-screen bg-surface text-on-surface font-body">
+      <body className="antialiased h-[100dvh] overflow-hidden bg-surface text-on-surface font-body">
         <TerminalProvider>
           <MacroProvider>
             <Navigation>
