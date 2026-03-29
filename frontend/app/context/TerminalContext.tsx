@@ -34,7 +34,10 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
   const [feedItems, setFeedItems] = useState<TerminalFeedItem[]>([]);
   const [status, setStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting');
   const ws = useRef<WebSocket | null>(null);
-  const currentAgentId = useRef<number | null>(null);
+  // Maps run_id (UUID from agent) → feed item id (Date.now() timestamp).
+  // Allows concurrent macros on different agents to route messages to the
+  // correct card independently, without a single "current" pointer.
+  const runIdToFeedId = useRef<Map<string, number>>(new Map());
 
   const connect = useCallback(function doConnect() {
     if (ws.current?.readyState === WebSocket.OPEN) return;
@@ -53,30 +56,31 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        const runId: string | undefined = data.run_id;
 
         if (data.status === 'started') {
           setLines(prev => [...prev, `$ ${data.command}`]);
           const id = Date.now();
-          currentAgentId.current = id;
+          if (runId) runIdToFeedId.current.set(runId, id);
           setFeedItems(prev => [...prev, { type: 'agent', id, command: data.command, lines: [], done: false }]);
         } else if (data.status === 'completed') {
           if (data.exit_code !== 0) {
             setLines(prev => [...prev, `✗ exit ${data.exit_code}`]);
           }
-          const agentId = currentAgentId.current;
-          if (agentId !== null) {
+          const agentId = runId ? runIdToFeedId.current.get(runId) : undefined;
+          if (agentId !== undefined) {
             setFeedItems(prev => prev.map(item =>
               item.type === 'agent' && item.id === agentId
                 ? { ...item, done: true, exitCode: data.exit_code }
                 : item
             ));
-            currentAgentId.current = null;
+            if (runId) runIdToFeedId.current.delete(runId);
           }
         } else if (data.status === 'streaming') {
           const message = data.message || data.error;
           setLines(prev => [...prev, message]);
-          const agentId = currentAgentId.current;
-          if (agentId !== null) {
+          const agentId = runId ? runIdToFeedId.current.get(runId) : undefined;
+          if (agentId !== undefined) {
             setFeedItems(prev => prev.map(item =>
               item.type === 'agent' && item.id === agentId
                 ? { ...item, lines: [...item.lines, message] }
@@ -85,13 +89,14 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
           }
         } else if (data.status === 'error') {
           setLines(prev => [...prev, `[Error] ${data.error}`]);
-          const agentId = currentAgentId.current;
-          if (agentId !== null) {
+          const agentId = runId ? runIdToFeedId.current.get(runId) : undefined;
+          if (agentId !== undefined) {
             setFeedItems(prev => prev.map(item =>
               item.type === 'agent' && item.id === agentId
                 ? { ...item, lines: [...item.lines, `[Error] ${data.error}`], done: true }
                 : item
             ));
+            if (runId) runIdToFeedId.current.delete(runId);
           }
         } else if (data.status === 'reset') {
           setLines(prev => [...prev, `[System] ${data.message}`]);
@@ -135,7 +140,7 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
   const clearLines = useCallback(() => {
     setLines([]);
     setFeedItems([]);
-    currentAgentId.current = null;
+    runIdToFeedId.current.clear();
   }, []);
 
   return (
