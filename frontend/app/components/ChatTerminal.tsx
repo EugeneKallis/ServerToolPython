@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Send, Bot, User, Terminal, ChevronDown, Trash2, XCircle, AlertCircle, Info, Plus, MessageSquare, PanelLeftOpen, PanelLeftClose, Paperclip, FileText, Image as ImageIcon, X } from 'lucide-react';
 import { useTerminal, TerminalFeedItem } from '../context/TerminalContext';
 import { useAgentCount } from '../hooks/useAgentCount';
+import TerminalOutputModal from './TerminalOutputModal';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -123,6 +124,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
   const [killing, setKilling] = useState(false);
 
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [expandedOutput, setExpandedOutput] = useState<{ lines: string[]; command?: string } | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -556,7 +558,11 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
                       )}
                     </div>
                   )}
-                  <div className="border border-outline-variant bg-surface-container-lowest px-3 py-2 font-mono text-[11px] text-on-surface-variant leading-relaxed max-h-64 overflow-y-auto">
+                  <div
+                    className="border border-outline-variant bg-surface-container-lowest px-3 py-2 font-mono text-[11px] text-on-surface-variant leading-relaxed max-h-64 overflow-y-auto cursor-pointer hover:border-primary-fixed-dim/50 transition-colors"
+                    onClick={() => setExpandedOutput({ lines: item.lines, command: item.command })}
+                    title="Click to expand"
+                  >
                     {item.lines.map((line, li) => (
                       <div key={li} className="whitespace-pre-wrap">{line}</div>
                     ))}
@@ -678,6 +684,15 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
           </button>
         </div>
       </div>
+
+      {/* Full-screen output modal */}
+      {expandedOutput && (
+        <TerminalOutputModal
+          lines={expandedOutput.lines}
+          command={expandedOutput.command}
+          onClose={() => setExpandedOutput(null)}
+        />
+      )}
 
       {/* Footer */}
       <div className="px-4 py-1.5 bg-surface-container-low border-t border-outline-variant flex items-center justify-between text-[9px] font-mono uppercase tracking-widest text-outline">
