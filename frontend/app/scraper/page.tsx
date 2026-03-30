@@ -40,32 +40,39 @@ function parseSize(s: string): number {
 function bestFile(files: ScrapedFile[]): ScrapedFile | null {
   if (!files.length) return null;
   return [...files].sort((a, b) => {
+    const seedDiff = (b.seeds ?? 0) - (a.seeds ?? 0);
+    if (seedDiff !== 0) return seedDiff;
     const sa = parseSize(a.file_size ?? '');
     const sb = parseSize(b.file_size ?? '');
-    if (sa !== sb) return sb - sa;
-    return (b.seeds ?? 0) - (a.seeds ?? 0);
+    return sb - sa;
   })[0];
 }
+
+type BridgeStateValue = 'idle' | 'loading' | 'done' | 'error';
 
 function ItemCard({ item, isActive, onHide }: {
   item: ScrapedItem;
   isActive: boolean;
   onHide: (id: number) => void;
 }) {
-  const [bridgeState, setBridgeState] = React.useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [bridgeStates, setBridgeStates] = React.useState<Record<number, BridgeStateValue>>({});
+
+  const getState = (fileId: number): BridgeStateValue => bridgeStates[fileId] ?? 'idle';
+  const setState = (fileId: number, s: BridgeStateValue) =>
+    setBridgeStates(prev => ({ ...prev, [fileId]: s }));
 
   const images = item.image_url ? item.image_url.split(',') : [];
   const mainImage = images[0] ?? null;
   const tags = item.tags ? item.tags.split(',').filter(Boolean) : [];
-  const magnet = item.source === 'projectjav' ? bestFile(item.files)?.magnet_link ?? '' : item.magnet_link;
-  const best = item.source === 'projectjav' ? bestFile(item.files) : null;
+  const isProjectjav = item.source === 'projectjav';
+  const best = isProjectjav ? bestFile(item.files) : null;
 
-  const sendToBridge = useCallback(async (downloadUncached: boolean) => {
-    if (!magnet || bridgeState === 'loading') return;
-    setBridgeState('loading');
+  const sendToBridge = useCallback(async (magnetLink: string, fileId: number, downloadUncached: boolean) => {
+    if (!magnetLink || getState(fileId) === 'loading') return;
+    setState(fileId, 'loading');
     try {
       const formData = new FormData();
-      formData.append('urls', magnet);
+      formData.append('urls', magnetLink);
       formData.append('downloadUncached', String(downloadUncached));
 
       const res = await fetch(`/api/magnet-bridge/add`, {
@@ -73,25 +80,29 @@ function ItemCard({ item, isActive, onHide }: {
         body: formData,
       });
       if (!res.ok) throw new Error(await res.text());
-      setBridgeState('done');
+      setState(fileId, 'done');
       await fetch(`/api/scraper/items/${item.id}/downloaded`, { method: 'PATCH' });
-      setTimeout(() => onHide(item.id), 800);
     } catch {
-      setBridgeState('error');
-      setTimeout(() => setBridgeState('idle'), 3000);
+      setState(fileId, 'error');
+      setTimeout(() => setState(fileId, 'idle'), 3000);
     }
-  }, [magnet, bridgeState, item.id, onHide]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id, bridgeStates]);
 
   useEffect(() => {
     if (!isActive) return;
     const onKey = (e: KeyboardEvent) => {
-      // Ignore if modifier keys are pressed
       if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-      if (bridgeState === 'loading' || bridgeState === 'done') return;
 
       if (e.key === 'd' || e.key === 'Enter') {
         e.preventDefault();
-        if (magnet) sendToBridge(false);
+        if (isProjectjav && best) {
+          if (getState(best.id) === 'loading' || getState(best.id) === 'done') return;
+          sendToBridge(best.magnet_link, best.id, false);
+        } else if (!isProjectjav && item.magnet_link) {
+          if (getState(0) === 'loading' || getState(0) === 'done') return;
+          sendToBridge(item.magnet_link, 0, false);
+        }
       } else if (e.key === 'h' || e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
         onHide(item.id);
@@ -99,7 +110,11 @@ function ItemCard({ item, isActive, onHide }: {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isActive, bridgeState, item.id, magnet, onHide, sendToBridge]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, item.id, item.magnet_link, isProjectjav, best, onHide, sendToBridge, bridgeStates]);
+
+  const stateLabel = (s: BridgeStateValue, fallback: string) =>
+    s === 'loading' ? '…' : s === 'done' ? '✓' : s === 'error' ? '✗' : fallback;
 
   return (
     <div className={`h-full w-full min-w-0 flex flex-col bg-surface-container border-b border-outline-variant transition-opacity ${item.is_downloaded ? 'opacity-50' : ''}`}>
@@ -124,59 +139,119 @@ function ItemCard({ item, isActive, onHide }: {
         <p className={`text-xs sm:text-sm font-mono text-on-surface leading-snug truncate ${item.is_downloaded ? 'line-through text-outline' : ''}`}>
           {item.title}
         </p>
-        {/* Actions row */}
-        <div className="flex items-center gap-2 flex-wrap w-full">
-          {/* Meta info */}
-          {best && (
-            <span className="text-[10px] font-mono text-outline shrink-0">
-              {best.file_size && <span className="text-primary-fixed-dim">{best.file_size}</span>}
-              {best.seeds != null && <span className="ml-1">S:{best.seeds}</span>}
-            </span>
-          )}
-          {tags.slice(0, 2).map(tag => (
-            <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 border border-outline-variant text-outline bg-surface-container-high hidden sm:inline shrink-0">
-              {tag}
-            </span>
-          ))}
-          {/* Buttons — push to right */}
-          <div className="flex items-center gap-2 ml-auto">
-            {magnet && (
-              <>
-                <button
-                  onClick={() => sendToBridge(false)}
-                  disabled={bridgeState === 'loading' || bridgeState === 'done'}
-                  title="Download (cached)"
-                  className="flex items-center gap-1.5 text-xs font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Download size={14} className="shrink-0" />
-                  <span className="hidden sm:inline text-[10px]">
-                    {bridgeState === 'loading' ? '…' : bridgeState === 'done' ? '✓' : bridgeState === 'error' ? '✗' : 'Download'}
+
+        {isProjectjav && item.files.length > 0 ? (
+          <>
+            {/* Tags for projectjav */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tags.slice(0, 2).map(tag => (
+                  <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 border border-outline-variant text-outline bg-surface-container-high hidden sm:inline shrink-0">
+                    {tag}
                   </span>
-                  <span className="sm:hidden text-[10px]">
-                    {bridgeState === 'loading' ? '…' : bridgeState === 'done' ? '✓' : bridgeState === 'error' ? '✗' : ''}
-                  </span>
-                </button>
-                <button
-                  onClick={() => sendToBridge(true)}
-                  disabled={bridgeState === 'loading' || bridgeState === 'done'}
-                  title="Download (force uncached)"
-                  className="flex items-center gap-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Download size={14} className="shrink-0" />
-                  <span className="text-[10px]">-C</span>
-                </button>
-              </>
+                ))}
+              </div>
             )}
-            <button
-              onClick={() => onHide(item.id)}
-              title="Hide"
-              className="flex items-center gap-1.5 text-xs font-mono text-outline hover:text-error border border-transparent hover:border-error/30 px-3 py-2 sm:py-1.5 hover:bg-error-container/10 transition-colors"
-            >
-              <EyeOff size={14} className="shrink-0" />
-              <span className="hidden sm:inline text-[10px]">Hide</span>
-            </button>
+            {/* Per-file list */}
+            <div className={`flex flex-col ${item.files.length > 5 ? 'max-h-[160px] overflow-y-auto' : ''}`}>
+              {item.files.map(file => {
+                const fs = getState(file.id);
+                return (
+                  <div
+                    key={file.id}
+                    className="flex items-center gap-2 text-[10px] font-mono py-1 border-b border-outline-variant/30 last:border-0"
+                  >
+                    <span className="text-primary-fixed-dim shrink-0">{file.file_size ?? '?'}</span>
+                    <span className="text-outline shrink-0">S:{file.seeds ?? 0}</span>
+                    <span className="text-outline shrink-0">L:{file.leechers ?? 0}</span>
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      <button
+                        onClick={() => sendToBridge(file.magnet_link, file.id, false)}
+                        disabled={fs === 'loading' || fs === 'done'}
+                        title="Download (cached)"
+                        className="flex items-center gap-1 text-[10px] font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-2 py-1 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Download size={12} className="shrink-0" />
+                        <span>{stateLabel(fs, '')}</span>
+                      </button>
+                      <button
+                        onClick={() => sendToBridge(file.magnet_link, file.id, true)}
+                        disabled={fs === 'loading' || fs === 'done'}
+                        title="Download (force uncached)"
+                        className="flex items-center gap-1 text-[10px] font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-2 py-1 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Download size={12} className="shrink-0" />
+                        <span>-C</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Hide button */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => onHide(item.id)}
+                title="Hide"
+                className="flex items-center gap-1.5 text-xs font-mono text-outline hover:text-error border border-transparent hover:border-error/30 px-3 py-1.5 hover:bg-error-container/10 transition-colors"
+              >
+                <EyeOff size={14} className="shrink-0" />
+                <span className="hidden sm:inline text-[10px]">Hide</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          /* Non-projectjav (or projectjav with no files) — original layout */
+          <div className="flex items-center gap-2 flex-wrap w-full">
+            {/* Meta info for non-projectjav */}
+            {tags.slice(0, 2).map(tag => (
+              <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 border border-outline-variant text-outline bg-surface-container-high hidden sm:inline shrink-0">
+                {tag}
+              </span>
+            ))}
+            {/* Buttons — push to right */}
+            <div className="flex items-center gap-2 ml-auto">
+              {item.magnet_link && (() => {
+                const fs = getState(0);
+                return (
+                  <>
+                    <button
+                      onClick={() => sendToBridge(item.magnet_link, 0, false)}
+                      disabled={fs === 'loading' || fs === 'done'}
+                      title="Download (cached)"
+                      className="flex items-center gap-1.5 text-xs font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Download size={14} className="shrink-0" />
+                      <span className="hidden sm:inline text-[10px]">
+                        {stateLabel(fs, 'Download')}
+                      </span>
+                      <span className="sm:hidden text-[10px]">
+                        {stateLabel(fs, '')}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => sendToBridge(item.magnet_link, 0, true)}
+                      disabled={fs === 'loading' || fs === 'done'}
+                      title="Download (force uncached)"
+                      className="flex items-center gap-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Download size={14} className="shrink-0" />
+                      <span className="text-[10px]">-C</span>
+                    </button>
+                  </>
+                );
+              })()}
+              <button
+                onClick={() => onHide(item.id)}
+                title="Hide"
+                className="flex items-center gap-1.5 text-xs font-mono text-outline hover:text-error border border-transparent hover:border-error/30 px-3 py-2 sm:py-1.5 hover:bg-error-container/10 transition-colors"
+              >
+                <EyeOff size={14} className="shrink-0" />
+                <span className="hidden sm:inline text-[10px]">Hide</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
