@@ -239,7 +239,7 @@ async def add_torrent(
             "downloadFolder": "/mnt/debrid/downloads"
         }
 
-        files_data = None
+        files_data = {}
         if urls:
             form_data["urls"] = urls
         elif files:
