@@ -162,6 +162,12 @@ async def poll_torrents():
                     # Cleanup small symlinks
                     await cleanup_small_symlinks(real_path, 75)
 
+                    # Setup move paths
+                    dest_root = Path(TORRENT_DEST_DIR) / MANAGED_CATEGORY
+                    dest_root.mkdir(parents=True, exist_ok=True)
+                    src_path = Path(real_path)
+                    dest_path = dest_root / src_path.name
+
                     should_move = not DEBUG_SKIP_MOVE
                     if DEBUG_SKIP_MOVE:
                         print(f"DEBUG MODE: Skipping move for {t.name}")
