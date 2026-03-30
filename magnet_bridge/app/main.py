@@ -18,6 +18,16 @@ load_dotenv()
 DECYPHARR_URL = os.getenv("DECYPHARR_URL", "http://192.168.1.99:8282")
 TORRENT_DEST_DIR = os.getenv("TORRENT_DEST_DIR", "/mnt/debrid/media")
 MAGNET_BRIDGE_PORT = int(os.getenv("MAGNET_BRIDGE_PORT", "8081"))
+MANAGED_CATEGORY = os.getenv("MANAGED_CATEGORY", "special")
+DEBUG_SKIP_MOVE = os.getenv("DEBUG_SKIP_MOVE", "false").lower() == "true"
+
+print("--- Magnet Bridge Configuration ---")
+print(f"Decypharr URL:    {DECYPHARR_URL}")
+print(f"Dest Directory:   {TORRENT_DEST_DIR}")
+print(f"Managed Category: {MANAGED_CATEGORY}")
+print(f"Debug Skip Move:  {DEBUG_SKIP_MOVE}")
+print(f"Port:             {MAGNET_BRIDGE_PORT}")
+print("-----------------------------------")
 
 
 class Torrent(BaseModel):
@@ -93,10 +103,10 @@ async def resolve_path(path_str: str) -> Optional[str]:
     if path.exists():
         return str(path)
 
-    # Fix double category nesting: special/special/Name -> special/Name
+    # Fix double category nesting: category/category/Name -> category/Name
     path_parts = list(path.parts)
-    if len(path_parts) >= 3 and path_parts[-3] == 'special' and path_parts[-2] == 'special':
-        fixed_parts = path_parts[:-3] + ['special'] + [path_parts[-1]]
+    if len(path_parts) >= 3 and path_parts[-3] == MANAGED_CATEGORY and path_parts[-2] == MANAGED_CATEGORY:
+        fixed_parts = path_parts[:-3] + [MANAGED_CATEGORY] + [path_parts[-1]]
         fixed_path = Path(*fixed_parts)
         if fixed_path.exists():
             return str(fixed_path)
@@ -113,7 +123,7 @@ async def resolve_path(path_str: str) -> Optional[str]:
 
 # Background Worker
 async def poll_torrents():
-    print("Starting background worker to poll for completed 'special' torrents...")
+    print(f"Starting background worker to poll for completed '{MANAGED_CATEGORY}' torrents...")
     failed_torrents = set()
 
     async with httpx.AsyncClient() as client:
@@ -130,7 +140,7 @@ async def poll_torrents():
                 for t_data in torrents:
                     t = Torrent(**t_data)
 
-                    if t.category != "special":
+                    if t.category != MANAGED_CATEGORY:
                         continue
 
                     if t.state != "pausedUP" or not t.content_path:
@@ -147,20 +157,15 @@ async def poll_torrents():
                         failed_torrents.remove(t.hash)
                         print(f"Locating content path for {t.name} resolved: {real_path}")
 
-                    print(f"Processing completed special torrent: {t.name} ({t.hash})")
+                    print(f"Processing completed {MANAGED_CATEGORY} torrent: {t.name} ({t.hash})")
 
                     # Cleanup small symlinks
                     await cleanup_small_symlinks(real_path, 75)
 
-                    # Move the file
-                    dest_root = Path(TORRENT_DEST_DIR) / "special"
-                    dest_root.mkdir(parents=True, exist_ok=True)
-
-                    src_path = Path(real_path)
-                    dest_path = dest_root / src_path.name
-
-                    should_move = True
-                    if dest_path.exists():
+                    should_move = not DEBUG_SKIP_MOVE
+                    if DEBUG_SKIP_MOVE:
+                        print(f"DEBUG MODE: Skipping move for {t.name}")
+                    elif dest_path.exists():
                         new_size = get_dir_size(src_path)
                         old_size = get_dir_size(dest_path)
 
@@ -181,16 +186,16 @@ async def poll_torrents():
                     if should_move:
                         try:
                             shutil.move(str(src_path), str(dest_path))
-                            print(f"Moved completed special torrent: {t.name} to {dest_path}")
+                            print(f"Moved completed {MANAGED_CATEGORY} torrent: {t.name} to {dest_path}")
                         except Exception as e:
                             print(f"Error moving {src_path} to {dest_path}: {e}")
                             continue
 
                     # Remove from UI
                     try:
-                        del_resp = await client.delete(f"{DECYPHARR_URL}/api/torrents/special/{t.hash}")
+                        del_resp = await client.delete(f"{DECYPHARR_URL}/api/torrents/{MANAGED_CATEGORY}/{t.hash}")
                         if del_resp.status_code == 200:
-                            print(f"Removed special torrent from UI: {t.hash}")
+                            print(f"Removed {MANAGED_CATEGORY} torrent from UI: {t.hash}")
                         else:
                             print(f"Failed to remove torrent from UI: {t.hash} (Status: {del_resp.status_code})")
                     except Exception as e:
