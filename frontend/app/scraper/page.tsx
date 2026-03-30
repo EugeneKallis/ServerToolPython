@@ -122,23 +122,23 @@ function ItemCard({ item, isActive, onHide }: {
   return (
     <div className={`h-full w-full min-w-0 flex flex-col bg-surface-container border-b border-outline-variant overflow-hidden transition-opacity ${item.is_downloaded ? 'opacity-50' : ''}`}>
       {/* Image */}
-      <div className="flex-1 min-h-0 bg-surface-container-highest overflow-hidden">
+      <div className="flex-1 min-h-0 bg-surface-container-highest overflow-hidden relative">
         {mainImage ? (
           <button
-            className="w-full h-full block cursor-zoom-in"
+            className="absolute inset-0 cursor-zoom-in"
             onClick={() => window.open(mainImage, '_blank', 'noopener,noreferrer')}
             tabIndex={-1}
           >
             <img
               src={mainImage}
               alt={item.title}
-              className="w-full h-full max-w-full object-cover"
+              className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
               onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
             />
           </button>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-outline text-xs font-mono">No image</div>
+          <div className="absolute inset-0 flex items-center justify-center text-outline text-xs font-mono">No image</div>
         )}
       </div>
 
