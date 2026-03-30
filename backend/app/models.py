@@ -166,3 +166,12 @@ class ChatMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime)
 
     conversation: Mapped["ChatConversation"] = relationship(back_populates="messages")
+
+
+class QuickLink(Base):
+    __tablename__ = "quick_link"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    label: Mapped[str] = mapped_column(String)
+    url: Mapped[str] = mapped_column(String)
+    ord: Mapped[int] = mapped_column(default=0)

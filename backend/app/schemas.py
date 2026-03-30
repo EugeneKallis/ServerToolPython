@@ -166,3 +166,23 @@ class ChatConversationRead(BaseModel):
     updated_at: datetime
     messages: List[ChatMessageRead] = []
     model_config = ConfigDict(from_attributes=True)
+
+
+# ── Quick Links ───────────────────────────────────────────────────────────────
+
+class QuickLinkCreate(BaseModel):
+    label: str
+    url: str
+    ord: int = 0
+
+class QuickLinkUpdate(BaseModel):
+    label: Optional[str] = None
+    url: Optional[str] = None
+    ord: Optional[int] = None
+
+class QuickLinkRead(BaseModel):
+    id: int
+    label: str
+    url: str
+    ord: int
+    model_config = ConfigDict(from_attributes=True)

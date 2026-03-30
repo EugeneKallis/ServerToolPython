@@ -138,6 +138,116 @@ function ChatHistoryPanel({ showSuccess }: { showSuccess: (m: string) => void })
   );
 }
 
+// ─── Quick Links sub-panel ───────────────────────────────────────────────────
+
+interface QuickLink { id: number; label: string; url: string; ord: number; }
+
+function QuickLinksPanel({ showSuccess }: { showSuccess: (m: string) => void }) {
+  const [links, setLinks] = useState<QuickLink[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editing, setEditing] = useState<QuickLink | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const refresh = useCallback(async () => {
+    const res = await fetch('/api/quick-links');
+    if (res.ok) setLinks(await res.json());
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const handleSave = async (values: Record<string, string>) => {
+    const isEditing = !!editing;
+    const url = isEditing ? `/api/quick-links/${editing.id}` : '/api/quick-links';
+    const method = isEditing ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: values.label, url: values.url, ord: isEditing ? editing.ord : links.length }),
+    });
+    if (!res.ok) { alert('Error saving link'); return; }
+    setIsModalOpen(false);
+    setEditing(null);
+    await refresh();
+    showSuccess(isEditing ? 'Link updated.' : 'Link added.');
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this link?')) return;
+    await fetch(`/api/quick-links/${id}`, { method: 'DELETE' });
+    await refresh();
+    showSuccess('Link deleted.');
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = links.findIndex(l => l.id === active.id);
+    const newIndex = links.findIndex(l => l.id === over.id);
+    const reordered = arrayMove(links, oldIndex, newIndex);
+    setLinks(reordered);
+    await Promise.all(
+      reordered.map((link, index) =>
+        fetch(`/api/quick-links/${link.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ord: index }),
+        })
+      )
+    );
+  };
+
+  return (
+    <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline">Quick Links</h2>
+        <button
+          onClick={() => { setEditing(null); setIsModalOpen(true); }}
+          className="flex items-center text-xs font-mono text-primary-fixed hover:text-primary-container bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
+        >
+          <Plus size={14} className="mr-1" /> Add Link
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+        {links.length === 0 && (
+          <p className="text-outline text-xs font-mono mt-4 text-center">No quick links yet.</p>
+        )}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={links.map(l => l.id)} strategy={verticalListSortingStrategy}>
+            {links.map(link => (
+              <SortableListItem
+                key={link.id}
+                id={link.id}
+                name={link.label}
+                subtitle={link.url}
+                onEdit={() => { setEditing(link); setIsModalOpen(true); }}
+                onDelete={() => handleDelete(link.id)}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+      </div>
+
+      {isModalOpen && (
+        <ItemForm
+          title={editing ? 'Edit Link' : 'New Quick Link'}
+          fields={[
+            { name: 'label', label: 'Label', placeholder: 'e.g. Plex' },
+            { name: 'url', label: 'URL', placeholder: 'https://...' },
+          ]}
+          initialValues={editing ? { label: editing.label, url: editing.url } : {}}
+          onSubmit={handleSave}
+          onCancel={() => { setIsModalOpen(false); setEditing(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ─── Main AdminPanel ─────────────────────────────────────────────────────────
 
 export function AdminPanel() {
@@ -146,7 +256,7 @@ export function AdminPanel() {
   const [selectedMacro, setSelectedMacro] = useState<Macro | null>(null);
 
   // Top-level tab
-  const [activeTab, setActiveTab] = useState<'macros' | 'chat'>('macros');
+  const [activeTab, setActiveTab] = useState<'macros' | 'chat' | 'links'>('macros');
 
   // Modals state
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -483,7 +593,7 @@ export function AdminPanel() {
 
       {/* Tab switcher */}
       <div className="flex gap-1 border-b border-outline-variant pb-3">
-        {(['macros', 'chat'] as const).map((tab) => (
+        {(['macros', 'chat', 'links'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -493,7 +603,7 @@ export function AdminPanel() {
                 : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high'
             }`}
           >
-            {tab === 'macros' ? 'Macro Groups' : 'Chat History'}
+            {tab === 'macros' ? 'Macro Groups' : tab === 'chat' ? 'Chat History' : 'Quick Links'}
           </button>
         ))}
       </div>
@@ -501,6 +611,11 @@ export function AdminPanel() {
       {/* ── Chat History Tab ── */}
       {activeTab === 'chat' && (
         <ChatHistoryPanel showSuccess={showSuccess} />
+      )}
+
+      {/* ── Quick Links Tab ── */}
+      {activeTab === 'links' && (
+        <QuickLinksPanel showSuccess={showSuccess} />
       )}
 
       {/* ── Macros Tab ── */}
