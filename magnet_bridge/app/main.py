@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import httpx
-from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -222,18 +222,7 @@ app.add_middleware(
 )
 
 
-# Load userscript from file
-_userscript_path = Path(__file__).parent / "magnet_bridge.js"
-USERSCRIPT_JS = _userscript_path.read_text()
-
-
 # Routes
-@app.get("/api/userscript")
-async def get_userscript(request: Request):
-    host = request.headers.get("host", "magnetbridge.ekserver.com")
-    js = USERSCRIPT_JS.replace("{{host}}", host)
-    return Response(content=js, media_type="text/javascript")
-
 @app.post("/api/{arr}/add")
 async def add_torrent(
     arr: str,

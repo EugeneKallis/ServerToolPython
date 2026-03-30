@@ -3,8 +3,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, Download, EyeOff, Undo2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_MAGNET_BRIDGE_URL || "https://magnetbridge.ekserver.com/api";
-const MANAGED_CATEGORY = process.env.NEXT_PUBLIC_MANAGED_CATEGORY || 'special';
 const SOURCES = ['141jav', 'projectjav', 'pornrips'] as const;
 type Source = typeof SOURCES[number];
 
@@ -70,7 +68,7 @@ function ItemCard({ item, isActive, onHide }: {
       formData.append('urls', magnet);
       formData.append('downloadUncached', String(downloadUncached));
 
-      const res = await fetch(`${API_BASE}/${MANAGED_CATEGORY}/add`, {
+      const res = await fetch(`/api/magnet-bridge/add`, {
         method: 'POST',
         body: formData,
       });

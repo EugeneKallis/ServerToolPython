@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
 
 from .database import engine, wait_for_db
 from .models import Base, ScriptRun, ChatConversation, ChatMessage
-from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent, schedules, chat, scraper, tools, quick_links
+from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent, schedules, chat, scraper, tools, quick_links, magnet_bridge
 from .redis_client import get_redis_client
 from .utils.scheduler import start_scheduler, shutdown_scheduler
 
@@ -253,6 +253,13 @@ async def lifespan(app: FastAPI):
     else:
         print("Warning: Database was not ready. Tables were not created.")
 
+    magnet_bridge_url = os.getenv("MAGNET_BRIDGE_URL", "http://magnet-bridge:8081")
+    managed_category = os.getenv("MANAGED_CATEGORY", "special")
+    print("--- Backend Configuration ---", flush=True)
+    print(f"Magnet Bridge URL: {magnet_bridge_url}", flush=True)
+    print(f"Managed Category:  {managed_category}", flush=True)
+    print("-----------------------------", flush=True)
+
     # Start the background run-log listener
     listener_task = asyncio.create_task(run_log_listener())
     
@@ -283,6 +290,7 @@ api_router.include_router(chat.router)
 api_router.include_router(scraper.router)
 api_router.include_router(tools.router)
 api_router.include_router(quick_links.router)
+api_router.include_router(magnet_bridge.router)
 
 app.include_router(api_router)
 
