@@ -42,5 +42,6 @@ Run `/gsd:plan-phase 1` to begin planning Phase 1.
 |---|-------------|------|--------|-----------|
 | 260329-du9 | Add a full-screen text viewer modal that opens when clicking on the terminal output box on the main page | 2026-03-29 | a8b9409 | [260329-du9-add-a-full-screen-text-viewer-modal-that](./quick/260329-du9-add-a-full-screen-text-viewer-modal-that/) |
 | 260329-g5y | Fix shell history popup in ChatTerminal | 2026-03-29 | ffa253e | [260329-g5y-fix-shell-history-popup-in-chatterminal](./quick/260329-g5y-fix-shell-history-popup-in-chatterminal/) |
+| 260330-mxm | Show all torrent files for projectjav items with per-file download buttons | 2026-03-30 | 239a3f0 | [260330-mxm-show-all-torrent-files-for-projectjav-it](./quick/260330-mxm-show-all-torrent-files-for-projectjav-it/) |
 
-**Last activity:** 2026-03-29 - Completed quick task 260329-g5y: Fix shell history popup in ChatTerminal
+**Last activity:** 2026-03-30 - Completed quick task 260330-mxm: Show all torrent files for projectjav items
