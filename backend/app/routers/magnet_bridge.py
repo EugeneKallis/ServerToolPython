@@ -27,8 +27,19 @@ async def add_torrent(
         }
 
         files_data = None
-        if urls:
+        if urls and urls.startswith("magnet:"):
             form_data["urls"] = urls
+        elif urls and urls.startswith("http"):
+            # Torrent file URL — fetch and submit as file upload
+            try:
+                torrent_resp = await client.get(urls, timeout=30.0, follow_redirects=True)
+                if torrent_resp.status_code != 200:
+                    raise HTTPException(status_code=502, detail=f"Failed to fetch torrent: HTTP {torrent_resp.status_code}")
+                files_data = {"files": ("download.torrent", torrent_resp.content, "application/x-bittorrent")}
+            except HTTPException:
+                raise
+            except Exception as e:
+                raise HTTPException(status_code=502, detail=f"Failed to fetch torrent: {str(e)}")
         elif files:
             files_data = {"files": (files.filename, await files.read(), files.content_type)}
         else:

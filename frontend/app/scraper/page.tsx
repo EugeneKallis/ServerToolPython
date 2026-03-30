@@ -66,6 +66,8 @@ function ItemCard({ item, isActive, onHide }: {
   const tags = item.tags ? item.tags.split(',').filter(Boolean) : [];
   const isProjectjav = item.source === 'projectjav';
   const best = isProjectjav ? bestFile(item.files) : null;
+  // pornrips uses torrent_link (HTTP URL) — magnet_link is the page URL
+  const nonProjectjavMagnet = item.source === 'pornrips' ? (item.torrent_link ?? '') : item.magnet_link;
 
   const sendToBridge = useCallback(async (magnetLink: string, fileId: number, downloadUncached: boolean) => {
     if (!magnetLink || getState(fileId) === 'loading') return;
@@ -100,9 +102,9 @@ function ItemCard({ item, isActive, onHide }: {
         if (isProjectjav && best) {
           if (getState(best.id) === 'loading' || getState(best.id) === 'done') return;
           sendToBridge(best.magnet_link, best.id, false);
-        } else if (!isProjectjav && item.magnet_link) {
+        } else if (!isProjectjav && nonProjectjavMagnet) {
           if (getState(0) === 'loading' || getState(0) === 'done') return;
-          sendToBridge(item.magnet_link, 0, false);
+          sendToBridge(nonProjectjavMagnet, 0, false);
         }
       } else if (e.key === 'h' || e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
@@ -112,7 +114,7 @@ function ItemCard({ item, isActive, onHide }: {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, item.id, item.magnet_link, isProjectjav, best, onHide, sendToBridge, bridgeStates]);
+  }, [isActive, item.id, nonProjectjavMagnet, isProjectjav, best, onHide, sendToBridge, bridgeStates]);
 
   const stateLabel = (s: BridgeStateValue, fallback: string) =>
     s === 'loading' ? '…' : s === 'done' ? '✓' : s === 'error' ? '✗' : fallback;
@@ -212,12 +214,12 @@ function ItemCard({ item, isActive, onHide }: {
             ))}
             {/* Buttons — push to right */}
             <div className="flex items-center gap-2 ml-auto">
-              {item.magnet_link && (() => {
+              {nonProjectjavMagnet && (() => {
                 const fs = getState(0);
                 return (
                   <>
                     <button
-                      onClick={() => sendToBridge(item.magnet_link, 0, false)}
+                      onClick={() => sendToBridge(nonProjectjavMagnet, 0, false)}
                       disabled={fs === 'loading' || fs === 'done'}
                       title="Download (cached)"
                       className="flex items-center gap-1.5 text-xs font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -231,7 +233,7 @@ function ItemCard({ item, isActive, onHide }: {
                       </span>
                     </button>
                     <button
-                      onClick={() => sendToBridge(item.magnet_link, 0, true)}
+                      onClick={() => sendToBridge(nonProjectjavMagnet, 0, true)}
                       disabled={fs === 'loading' || fs === 'done'}
                       title="Download (force uncached)"
                       className="flex items-center gap-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
