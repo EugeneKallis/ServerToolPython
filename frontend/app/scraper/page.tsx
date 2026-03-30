@@ -67,9 +67,9 @@ function ItemCard({ item, isActive, onHide }: {
     try {
       const formData = new FormData();
       formData.append('urls', magnet);
-      formData.append('download_uncached', String(downloadUncached));
+      formData.append('downloadUncached', String(downloadUncached));
 
-      const res = await fetch(`${API_BASE}/scraper/bridge`, {
+      const res = await fetch(`${API_BASE}/special/add`, {
         method: 'POST',
         body: formData,
       });
