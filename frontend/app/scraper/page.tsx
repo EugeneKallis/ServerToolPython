@@ -81,14 +81,14 @@ function ItemCard({ item, isActive, onHide }: {
       });
       if (!res.ok) throw new Error(await res.text());
       setState(fileId, 'done');
-      await fetch(`/api/scraper/items/${item.id}/downloaded`, { method: 'PATCH' });
+      fetch(`/api/scraper/items/${item.id}/downloaded`, { method: 'PATCH' });
       setTimeout(() => onHide(item.id), 800);
     } catch {
       setState(fileId, 'error');
       setTimeout(() => setState(fileId, 'idle'), 3000);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id, bridgeStates]);
+  }, [item.id, onHide, bridgeStates]);
 
   useEffect(() => {
     if (!isActive) return;
