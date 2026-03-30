@@ -25,10 +25,12 @@ steps:
       dockerfile: backend/Dockerfile
       context: backend
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   # 2. Build and push Frontend
   - name: publish-frontend
@@ -41,10 +43,12 @@ steps:
       dockerfile: frontend/Dockerfile
       context: frontend
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   # 3. Build and push Agent
   - name: publish-agent
@@ -57,10 +61,12 @@ steps:
       dockerfile: agent/Dockerfile
       context: agent
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   # 4. Build and push Scraper
   - name: publish-scraper
@@ -73,10 +79,12 @@ steps:
       dockerfile: scraper/Dockerfile
       context: scraper
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   # 5. Build and push Arr Searcher
   - name: publish-arr-searcher
@@ -89,10 +97,12 @@ steps:
       dockerfile: arr_searcher/Dockerfile
       context: arr_searcher
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   # 6. Build and push Magnet Bridge
   - name: publish-magnet-bridge
@@ -105,10 +115,12 @@ steps:
       dockerfile: magnet_bridge/Dockerfile
       context: magnet_bridge
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   # 7. Deploy to Production
   - name: deploy-prod
