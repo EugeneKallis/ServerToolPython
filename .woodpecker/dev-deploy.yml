@@ -24,10 +24,12 @@ steps:
       dockerfile: frontend/Dockerfile
       context: frontend
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   - name: build-backend
     image: plugins/docker
@@ -39,10 +41,12 @@ steps:
       dockerfile: backend/Dockerfile
       context: backend
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   - name: build-agent
     image: plugins/docker
@@ -54,10 +58,12 @@ steps:
       dockerfile: agent/Dockerfile
       context: agent
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   - name: build-scraper
     image: plugins/docker
@@ -69,10 +75,12 @@ steps:
       dockerfile: scraper/Dockerfile
       context: scraper
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   - name: build-arr-searcher
     image: plugins/docker
@@ -84,10 +92,12 @@ steps:
       dockerfile: arr_searcher/Dockerfile
       context: arr_searcher
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   - name: build-magnet-bridge
     image: plugins/docker
@@ -99,10 +109,12 @@ steps:
       dockerfile: magnet_bridge/Dockerfile
       context: magnet_bridge
       daemon_off: true
+      tags_file: .tags
       username:
         from_secret: docker_username
       password:
         from_secret: docker_password
+    depends_on: [generate-tag]
 
   - name: deploy-dev
     image: alpine:latest
