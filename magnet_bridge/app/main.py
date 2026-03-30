@@ -239,19 +239,22 @@ async def add_torrent(
             "downloadFolder": "/mnt/debrid/downloads"
         }
 
-        files_data = {}
+        # Build as multipart fields — httpx always sends multipart/form-data when files= is used
+        multipart = [(k, (None, str(v))) for k, v in form_data.items()]
+
         if urls:
             form_data["urls"] = urls
+            multipart.append(("urls", (None, urls)))
         elif files:
-            files_data = {"files": (files.filename, await files.read(), files.content_type)}
+            file_bytes = await files.read()
+            multipart.append(("files", (files.filename, file_bytes, files.content_type)))
         else:
             raise HTTPException(status_code=400, detail="No magnet link or file provided")
 
         try:
             resp = await client.post(
                 f"{DECYPHARR_URL}/api/add",
-                data=form_data,
-                files=files_data,
+                files=multipart,
                 timeout=30.0
             )
 
