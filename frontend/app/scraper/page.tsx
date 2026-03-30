@@ -82,6 +82,7 @@ function ItemCard({ item, isActive, onHide }: {
       if (!res.ok) throw new Error(await res.text());
       setState(fileId, 'done');
       await fetch(`/api/scraper/items/${item.id}/downloaded`, { method: 'PATCH' });
+      setTimeout(() => onHide(item.id), 800);
     } catch {
       setState(fileId, 'error');
       setTimeout(() => setState(fileId, 'idle'), 3000);
