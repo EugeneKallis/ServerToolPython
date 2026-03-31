@@ -122,7 +122,7 @@ function ItemCard({ item, isActive, onHide }: {
   return (
     <div className={`h-full w-full min-w-0 flex flex-col bg-surface-container border-b border-outline-variant overflow-hidden transition-opacity ${item.is_downloaded ? 'opacity-50' : ''}`}>
       {/* Image */}
-      <div className="flex-1 min-h-0 bg-surface-container-highest overflow-hidden relative">
+      <div className="flex-1 min-h-0 bg-black overflow-hidden relative">
         {mainImage ? (
           <button
             className="absolute inset-0 cursor-zoom-in"
@@ -132,7 +132,7 @@ function ItemCard({ item, isActive, onHide }: {
             <img
               src={mainImage}
               alt={item.title}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               referrerPolicy="no-referrer"
               onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
             />
