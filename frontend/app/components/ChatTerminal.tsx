@@ -569,7 +569,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
               <ChevronDown size={9} className={`transition-transform ${showModelPicker ? 'rotate-180' : ''}`} />
             </button>
             {showModelPicker && (
-              <div className="absolute left-0 top-full mt-1 z-50 w-80 border border-outline-variant bg-surface-container-low shadow-xl max-h-96 overflow-y-auto">
+              <div className="absolute left-0 top-full mt-1 z-50 w-72 sm:w-80 max-w-[calc(100vw-2rem)] border border-outline-variant bg-surface-container-low shadow-xl max-h-96 overflow-y-auto">
                 {models.length > 0 ? models.map(m => {
                   const info = getModelInfo(m);
                   const isActive = m === selectedModel;
@@ -592,7 +592,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
                         )}
                       </div>
                       {info && (
-                        <p className="text-[10px] font-mono text-outline mt-0.5 leading-snug">{info.desc}</p>
+                        <p className="text-[10px] font-mono text-outline mt-0.5 leading-snug truncate">{info.desc}</p>
                       )}
                     </button>
                   );
