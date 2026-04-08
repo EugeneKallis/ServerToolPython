@@ -11,14 +11,15 @@ const withPWA = withPWAInit({
 const nextConfig: NextConfig = {
   output: 'standalone',
   async rewrites() {
+    const backendUrl = process.env.BACKEND_URL || "http://backend:8080";
     return [
       {
         source: '/api/:path*',
-        destination: `http://backend:8080/api/:path*`,
+        destination: `${backendUrl}/api/:path*`,
       },
       {
         source: '/ws/:path*',
-        destination: `http://backend:8080/ws/:path*`,
+        destination: `${backendUrl}/ws/:path*`,
       },
     ];
   },
