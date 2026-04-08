@@ -1,8 +1,12 @@
 import asyncio
 import json
 import os
+import logging
 
 import redis.asyncio as aioredis
+
+logger = logging.getLogger("scraper")
+logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s %(message)s")
 
 from app.scrapers import jav141, projectjav, pornrips
 
@@ -29,22 +33,22 @@ async def _set_status(r: aioredis.Redis, source: str, running: bool):
 async def run_scrape(source: str, force: bool, r: aioredis.Redis):
     lock = _get_lock(source)
     if lock.locked():
-        print(f"[scraper] {source} already running, skipping", flush=True)
+        logger.info(f"[scraper] {source} already running, skipping")
         return
 
     async with lock:
         await _set_status(r, source, True)
-        print(f"[scraper] Starting {source} (force={force})", flush=True)
+        logger.info(f"[scraper] Starting {source} (force={force})")
         try:
             loop = asyncio.get_event_loop()
             items = await loop.run_in_executor(None, _scrape_sync, source)
             if items:
                 await _publish_results(r, source, items, force)
         except Exception as e:
-            print(f"[scraper] {source} failed: {e}", flush=True)
+            logger.info(f"[scraper] {source} failed: {e}")
         finally:
             await _set_status(r, source, False)
-            print(f"[scraper] Finished {source}", flush=True)
+            logger.info(f"[scraper] Finished {source}")
 
 
 def _scrape_sync(source: str) -> list[dict]:
@@ -57,7 +61,7 @@ def _scrape_sync(source: str) -> list[dict]:
     else:
         return []
 
-    print(f"[scraper] {source}: scraped {len(items)} raw items", flush=True)
+    logger.info(f"[scraper] {source}: scraped {len(items)} raw items")
     return items
 
 
@@ -68,7 +72,7 @@ async def _publish_results(r: aioredis.Redis, source: str, items: list[dict], fo
     for item in items:
         identifier = item.get("page_url") or item.get("magnet", "")
         if not identifier:
-            print(f"[scraper] {source}: skipping '{item.get('title', '?')}' — no identifier", flush=True)
+            logger.info(f"[scraper] {source}: skipping '{item.get('title', '?')}' — no identifier")
             continue
 
         title = _sanitize(item.get("title", ""))
@@ -106,23 +110,23 @@ async def _publish_results(r: aioredis.Redis, source: str, items: list[dict], fo
 
     payload = json.dumps({"source": source, "force": force, "items": normalized})
     await r.lpush("scraper_results", payload)
-    print(f"[scraper] {source}: queued {len(normalized)} items for backend via Redis", flush=True)
+    logger.info(f"[scraper] {source}: queued {len(normalized)} items for backend via Redis")
 
 
 async def auto_scrape_loop(r: aioredis.Redis):
     sources = ["141jav", "projectjav", "pornrips"]
     while True:
-        print("[scraper] Running scheduled scrape...", flush=True)
+        logger.info("[scraper] Running scheduled scrape...")
         for source in sources:
             await run_scrape(source, False, r)
-        print(f"[scraper] Sleeping {SCRAPE_INTERVAL_HOURS}h until next scrape.", flush=True)
+        logger.info(f"[scraper] Sleeping {SCRAPE_INTERVAL_HOURS}h until next scrape.")
         await asyncio.sleep(SCRAPE_INTERVAL_HOURS * 3600)
 
 
 async def command_listener(r: aioredis.Redis):
     pubsub = r.pubsub()
     await pubsub.subscribe("scraper_commands")
-    print("[scraper] Subscribed to scraper_commands", flush=True)
+    logger.info("[scraper] Subscribed to scraper_commands")
 
     async for message in pubsub.listen():
         if message["type"] != "message":
@@ -134,11 +138,11 @@ async def command_listener(r: aioredis.Redis):
                 force = data.get("force", False)
                 asyncio.create_task(run_scrape(source, force, r))
         except Exception as e:
-            print(f"[scraper] Command error: {e}", flush=True)
+            logger.info(f"[scraper] Command error: {e}")
 
 
 async def main():
-    print("[scraper] Scraper service starting...", flush=True)
+    logger.info("[scraper] Scraper service starting...")
     r = aioredis.from_url(REDIS_URL, socket_connect_timeout=5, socket_timeout=5)
 
     asyncio.create_task(auto_scrape_loop(r))
