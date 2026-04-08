@@ -1,8 +1,13 @@
+import os
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app.models import Base, MacroGroup, Macro, Command
 
 def seed_data():
+    env = os.getenv("ENVIRONMENT", "development")
+    if env not in ("development", "local"):
+        raise RuntimeError(f"seed_data() refused: ENVIRONMENT={env!r} is not 'development' or 'local'")
+
     db = SessionLocal()
     try:
         # Clear existing data to avoid duplicates in this test env
