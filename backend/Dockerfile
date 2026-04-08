@@ -22,6 +22,10 @@ COPY . .
 # Install the package itself (to handle setup.py dependencies and package structure)
 RUN pip install --no-cache-dir .
 
+# Run database migrations at runtime (DATABASE_URL is set via ENV at startup)
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 # Make port 8080 available to the world outside this container
 EXPOSE 8080
 
@@ -29,5 +33,9 @@ EXPOSE 8080
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Run as non-root user
+RUN useradd --create-home --shell /bin/bash appuser
+USER appuser
+
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["/start.sh"]

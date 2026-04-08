@@ -82,8 +82,13 @@ class ArrInstanceUpdate(BaseModel):
     api_key: Optional[str] = None
     enabled: Optional[bool] = None
 
-class ArrInstanceRead(ArrInstanceBase):
+class ArrInstanceRead(BaseModel):
     id: int
+    name: str
+    type: str
+    url: str
+    enabled: bool
+    # SECURITY: api_key is excluded from API responses — never expose secrets
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -106,6 +111,13 @@ class MacroScheduleBase(BaseModel):
 
 class MacroScheduleCreate(MacroScheduleBase):
     pass
+
+class MacroScheduleUpdate(BaseModel):
+    name: Optional[str] = None
+    macro_id: Optional[int] = None
+    cron_expression: Optional[str] = None
+    enabled: Optional[bool] = None
+    args: Optional[str] = None
 
 class MacroScheduleRead(MacroScheduleBase):
     id: int

@@ -1,2 +1,2 @@
-redis
-watchdog
+redis==5.2.1
+watchdog==6.0.0

@@ -175,7 +175,7 @@ async def run_agent():
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
     logger.info(f"Agent starting, connecting to Redis at {redis_url}...")
 
-    r = redis.from_url(redis_url)
+    r = redis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
 
     await asyncio.gather(
         command_worker(r),
