@@ -82,8 +82,13 @@ class ArrInstanceUpdate(BaseModel):
     api_key: Optional[str] = None
     enabled: Optional[bool] = None
 
-class ArrInstanceRead(ArrInstanceBase):
+class ArrInstanceRead(BaseModel):
     id: int
+    name: str
+    type: str
+    url: str
+    enabled: bool
+    # SECURITY: api_key is excluded from API responses — never expose secrets
     model_config = ConfigDict(from_attributes=True)
 
 

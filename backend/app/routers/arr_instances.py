@@ -15,13 +15,11 @@ router = APIRouter(prefix="/arr-instances", tags=["arr-instances"])
 
 
 @router.get("/", response_model=List[ArrInstanceRead])
-@router.get("", response_model=List[ArrInstanceRead])
 def list_arr_instances(db: Session = Depends(get_session)):
     return db.query(ArrInstance).all()
 
 
 @router.post("/", response_model=ArrInstanceRead, status_code=201)
-@router.post("", response_model=ArrInstanceRead, status_code=201)
 async def create_arr_instance(payload: ArrInstanceCreate, db: Session = Depends(get_session)):
     existing = db.query(ArrInstance).filter(ArrInstance.name == payload.name).first()
     if existing:
