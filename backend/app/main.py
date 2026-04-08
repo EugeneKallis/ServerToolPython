@@ -1,6 +1,7 @@
 import json
 import asyncio
 import os
+import logging
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,6 +13,9 @@ from .redis_client import get_redis_client
 from .utils.scheduler import start_scheduler, shutdown_scheduler
 
 from contextlib import asynccontextmanager
+
+logger = logging.getLogger("backend")
+logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s %(message)s")
 
 # ── Run-log listener ──────────────────────────────────────────────────────────
 # Tracks in-flight runs keyed by run_id (UUID from agent)
@@ -31,7 +35,7 @@ async def run_log_listener():
     r = aioredis.from_url(redis_url)
     pubsub = r.pubsub()
     await pubsub.subscribe("agent_responses")
-    print("Run-log listener subscribed to agent_responses", flush=True)
+    logger.info("Run-log listener subscribed to agent_responses")
 
     async for message in pubsub.listen():
         if message["type"] != "message":
@@ -108,7 +112,7 @@ async def run_log_listener():
                     _active_started.pop(run_id, None)
 
         except Exception as e:
-            print(f"[run_log_listener] Error: {e}", flush=True)
+            logger.info(f"[run_log_listener] Error: {e}")
 
 # ── Arr Config listener ────────────────────────────────────────────────────────
 
@@ -125,7 +129,7 @@ async def arr_config_listener():
     r = aioredis.from_url(redis_url)
     pubsub = r.pubsub()
     await pubsub.subscribe("arr_config_requests")
-    print("Arr config listener subscribed to arr_config_requests", flush=True)
+    logger.info("Arr config listener subscribed to arr_config_requests")
 
     async for message in pubsub.listen():
         if message["type"] != "message":
@@ -134,7 +138,7 @@ async def arr_config_listener():
             with Session(engine) as db:
                 await broadcast_arr_config(r, db)
         except Exception as e:
-            print(f"[arr_config_listener] Error broadcasting config: {e}", flush=True)
+            logger.info(f"[arr_config_listener] Error broadcasting config: {e}")
 
 
 # ── Scraper results listener ──────────────────────────────────────────────────
@@ -151,7 +155,7 @@ async def scraper_results_listener():
 
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
     r = aioredis.from_url(redis_url)
-    print("Scraper results listener waiting on scraper_results queue", flush=True)
+    logger.info("Scraper results listener waiting on scraper_results queue")
 
     while True:
         try:
@@ -177,7 +181,7 @@ async def scraper_results_listener():
                     session.delete(item)
                 if old:
                     session.commit()
-                    print(f"[scraper_results] Cleaned up {len(old)} old hidden items", flush=True)
+                    logger.info(f"[scraper_results] Cleaned up {len(old)} old hidden items")
 
                 new_count = 0
                 for item_data in items:
@@ -238,10 +242,10 @@ async def scraper_results_listener():
                             session.rollback()
 
                 session.commit()
-                print(f"[scraper_results] {source}: added {new_count} new items", flush=True)
+                logger.info(f"[scraper_results] {source}: added {new_count} new items")
 
         except Exception as e:
-            print(f"[scraper_results_listener] Error: {e}", flush=True)
+            logger.info(f"[scraper_results_listener] Error: {e}")
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
@@ -252,14 +256,14 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(engine)
         start_scheduler()
     else:
-        print("Warning: Database was not ready. Tables were not created.")
+        logger.info("Warning: Database was not ready. Tables were not created.")
 
     magnet_bridge_url = os.getenv("MAGNET_BRIDGE_URL", "http://magnet-bridge:8081")
     managed_category = os.getenv("MANAGED_CATEGORY", "special")
-    print("--- Backend Configuration ---", flush=True)
-    print(f"Magnet Bridge URL: {magnet_bridge_url}", flush=True)
-    print(f"Managed Category:  {managed_category}", flush=True)
-    print("-----------------------------", flush=True)
+    logger.info("--- Backend Configuration ---")
+    logger.info(f"Magnet Bridge URL: {magnet_bridge_url}")
+    logger.info(f"Managed Category:  {managed_category}")
+    logger.info("-----------------------------")
 
     # Start the background run-log listener
     listener_task = asyncio.create_task(run_log_listener())
@@ -341,7 +345,7 @@ async def index(request: Request):
 @app.websocket("/ws/terminal")
 async def terminal_websocket(websocket: WebSocket):
     await websocket.accept()
-    print("Client connected to terminal WebSocket")
+    logger.info("Client connected to terminal WebSocket")
 
     import redis.asyncio as aioredis
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
@@ -355,7 +359,7 @@ async def terminal_websocket(websocket: WebSocket):
                 if message["type"] == "message":
                     await websocket.send_text(message["data"].decode("utf-8"))
         except Exception as e:
-            print(f"Error in pubsub listener: {e}")
+            logger.info(f"Error in pubsub listener: {e}")
 
     listener_task = asyncio.create_task(listen_to_responses())
 
@@ -363,7 +367,7 @@ async def terminal_websocket(websocket: WebSocket):
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
-        print("Client disconnected from terminal WebSocket")
+        logger.info("Client disconnected from terminal WebSocket")
     finally:
         listener_task.cancel()
         await pubsub.unsubscribe("agent_responses")
