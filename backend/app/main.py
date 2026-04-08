@@ -28,7 +28,7 @@ async def run_log_listener():
     from sqlalchemy.orm import Session
     
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    r = aioredis.from_url(redis_url)
+    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
     pubsub = r.pubsub()
     await pubsub.subscribe("agent_responses")
     print("Run-log listener subscribed to agent_responses", flush=True)
@@ -122,7 +122,7 @@ async def arr_config_listener():
     from app.utils.arr_config import broadcast_arr_config
     
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    r = aioredis.from_url(redis_url)
+    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
     pubsub = r.pubsub()
     await pubsub.subscribe("arr_config_requests")
     print("Arr config listener subscribed to arr_config_requests", flush=True)
@@ -150,7 +150,7 @@ async def scraper_results_listener():
     from .models import ScrapedItem, ScrapedItemFile
 
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    r = aioredis.from_url(redis_url)
+    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
     print("Scraper results listener waiting on scraper_results queue", flush=True)
 
     while True:
@@ -345,7 +345,7 @@ async def terminal_websocket(websocket: WebSocket):
 
     import redis.asyncio as aioredis
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    r = aioredis.from_url(redis_url)
+    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
     pubsub = r.pubsub()
     await pubsub.subscribe("agent_responses")
 

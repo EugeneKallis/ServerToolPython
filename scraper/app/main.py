@@ -139,7 +139,7 @@ async def command_listener(r: aioredis.Redis):
 
 async def main():
     print("[scraper] Scraper service starting...", flush=True)
-    r = aioredis.from_url(REDIS_URL)
+    r = aioredis.from_url(REDIS_URL, socket_connect_timeout=5, socket_timeout=5)
 
     asyncio.create_task(auto_scrape_loop(r))
     await command_listener(r)
