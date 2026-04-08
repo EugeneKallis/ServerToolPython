@@ -3,6 +3,7 @@ import asyncio
 import os
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
 
 from .database import engine, wait_for_db
 from .models import Base, ScriptRun, ChatConversation, ChatMessage
@@ -277,6 +278,25 @@ async def lifespan(app: FastAPI):
     shutdown_scheduler()
 
 app = FastAPI(title="ServerToolPython API", lifespan=lifespan)
+
+# Allow the frontend to call this API from a browser
+# Restrict origins via CORS_ALLOWED_ORIGINS env var (comma-separated list)
+_cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+if _cors_origins:
+    allowed_origins = [o.strip() for o in _cors_origins.split(",") if o.strip()]
+else:
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(commands.router)
