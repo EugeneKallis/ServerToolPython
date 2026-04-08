@@ -5,7 +5,7 @@ from typing import List
 
 from ..database import get_session
 from ..models import MacroSchedule
-from ..schemas import MacroScheduleCreate, MacroScheduleRead
+from ..schemas import MacroScheduleCreate, MacroScheduleRead, MacroScheduleUpdate
 from ..utils.scheduler import add_schedule_to_scheduler, remove_schedule_from_scheduler
 
 router = APIRouter(
@@ -37,12 +37,12 @@ def get_schedule(id: int, session: Session = Depends(get_session)):
     return schedule
 
 @router.patch("/{id}", response_model=MacroScheduleRead)
-def update_schedule(id: int, payload: dict, session: Session = Depends(get_session)):
+def update_schedule(id: int, payload: MacroScheduleUpdate, session: Session = Depends(get_session)):
     schedule = session.get(MacroSchedule, id)
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
     
-    for key, value in payload.items():
+    for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(schedule, key, value)
     
     session.commit()

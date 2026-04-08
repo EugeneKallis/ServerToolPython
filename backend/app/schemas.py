@@ -112,6 +112,13 @@ class MacroScheduleBase(BaseModel):
 class MacroScheduleCreate(MacroScheduleBase):
     pass
 
+class MacroScheduleUpdate(BaseModel):
+    name: Optional[str] = None
+    macro_id: Optional[int] = None
+    cron_expression: Optional[str] = None
+    enabled: Optional[bool] = None
+    args: Optional[str] = None
+
 class MacroScheduleRead(MacroScheduleBase):
     id: int
     model_config = ConfigDict(from_attributes=True)
