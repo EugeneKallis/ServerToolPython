@@ -16,6 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY setup.py .
 RUN pip install -e .
 
+# Run as non-root user
+RUN useradd --create-home --shell /bin/bash appuser
+USER appuser
+
 # The source code will be mounted as a volume
 # CMD will be overridden in docker-compose.yml for reload
 
