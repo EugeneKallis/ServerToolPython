@@ -29,5 +29,9 @@ EXPOSE 8080
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Run as non-root user
+RUN useradd --create-home --shell /bin/bash appuser
+USER appuser
+
 # Run the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
