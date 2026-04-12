@@ -37,3 +37,4 @@ Issues identified during best practices review. Updated as each item is resolved
 | 17 | ✅ Done | `schedule` router uses `payload: dict` instead of a Pydantic schema | `backend/app/routers/schedules.py:40` | #10 |
 | 18 | ✅ Done | Frontend metadata still says "Create Next App" | `frontend/app/layout.tsx:15-18` | — |
 | 19 | ✅ Done | Hardcoded `http://backend:8080` in next.config instead of env var | `frontend/next.config.ts` | #13 |
+
