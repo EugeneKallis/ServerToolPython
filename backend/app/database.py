@@ -3,7 +3,13 @@ import time
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+POSTGRES_HOST = os.environ["POSTGRES_HOST"]
+POSTGRES_PORT = os.environ["POSTGRES_PORT"]
+POSTGRES_USER = os.environ["POSTGRES_USER"]
+POSTGRES_PASSWORD = os.environ["POSTGRES_PASSWORD"]
+POSTGRES_DB = os.environ["POSTGRES_DB"]
+
+DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 # Engine for PostgreSQL
 engine = create_engine(DATABASE_URL)
