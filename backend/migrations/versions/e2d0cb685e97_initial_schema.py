@@ -36,7 +36,7 @@ def upgrade() -> None:
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('ord', sa.Integer(), nullable=False, server_default='0'),
         sa.Column('macro_group_id', sa.Integer(), nullable=True),
-        sa.ForeignKey(['macro_group_id'], 'macro_group', ['id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['macro_group_id'], ['macro_group.id'], ondelete='CASCADE'),
     )
     op.create_primary_key('pk_macro', 'macro', ['id'])
 
@@ -47,7 +47,7 @@ def upgrade() -> None:
         sa.Column('ord', sa.Integer(), nullable=False, server_default='0'),
         sa.Column('command', sa.String(), nullable=False),
         sa.Column('macro_id', sa.Integer(), nullable=True),
-        sa.ForeignKey(['macro_id'], 'macro', ['id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['macro_id'], ['macro.id'], ondelete='CASCADE'),
     )
     op.create_primary_key('pk_command', 'command', ['id'])
 
@@ -58,7 +58,7 @@ def upgrade() -> None:
         sa.Column('arg_name', sa.String(), nullable=False),
         sa.Column('arg_value', sa.String(), nullable=False),
         sa.Column('command_id', sa.Integer(), nullable=False),
-        sa.ForeignKey(['command_id'], 'command', ['id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['command_id'], ['command.id'], ondelete='CASCADE'),
     )
     op.create_primary_key('pk_command_argument', 'command_argument', ['id'])
 
@@ -110,7 +110,7 @@ def upgrade() -> None:
         sa.Column('cron_expression', sa.String(), nullable=False),
         sa.Column('enabled', sa.Boolean(), nullable=False, server_default='true'),
         sa.Column('args', sa.Text(), nullable=True),
-        sa.ForeignKey(['macro_id'], 'macro', ['id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['macro_id'], ['macro.id'], ondelete='CASCADE'),
     )
     op.create_primary_key('pk_macro_schedule', 'macro_schedule', ['id'])
 
@@ -141,7 +141,7 @@ def upgrade() -> None:
         sa.Column('file_size', sa.String(), nullable=True),
         sa.Column('seeds', sa.Integer(), nullable=True),
         sa.Column('leechers', sa.Integer(), nullable=True),
-        sa.ForeignKey(['item_id'], 'scraped_item', ['id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['item_id'], ['scraped_item.id'], ondelete='CASCADE'),
     )
     op.create_primary_key('pk_scraped_item_file', 'scraped_item_file', ['id'])
     op.create_unique_key('uq_scraped_item_file_magnet_link', 'scraped_item_file', ['magnet_link'])
@@ -165,7 +165,7 @@ def upgrade() -> None:
         sa.Column('role', sa.String(), nullable=False),
         sa.Column('content', sa.Text(), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
-        sa.ForeignKey(['conversation_id'], 'chat_conversation', ['id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['conversation_id'], ['chat_conversation.id'], ondelete='CASCADE'),
     )
     op.create_primary_key('pk_chat_message', 'chat_message', ['id'])
 
