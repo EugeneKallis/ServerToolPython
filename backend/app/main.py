@@ -155,7 +155,7 @@ async def scraper_results_listener():
 
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
 
-    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)]
+    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
     logger.info("Scraper results listener waiting on scraper_results queue")
     
 
@@ -255,7 +255,7 @@ async def scraper_results_listener():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if wait_for_db():
-        Base.metadata.create_all(engine)
+        Base.metadata.create_all(engine, checkfirst=True)
         start_scheduler()
     else:
         logger.info("Warning: Database was not ready. Tables were not created.")
