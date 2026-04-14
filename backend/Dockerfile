@@ -19,6 +19,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the current directory contents into the container at /app
 COPY . .
 
+# Keep stale bytecode or local build artifacts out of Alembic's revision scan.
+RUN find /app -type d -name __pycache__ -prune -exec rm -rf {} + \
+    && find /app -type f \( -name "*.pyc" -o -name "*.pyo" \) -delete
+
 # Install the package itself (to handle setup.py dependencies and package structure)
 RUN pip install --no-cache-dir .
 
