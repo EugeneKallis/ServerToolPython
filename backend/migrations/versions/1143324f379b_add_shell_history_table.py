@@ -25,7 +25,8 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('command', sa.String(), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_shell_history'))
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_shell_history')),
+    if_not_exists=True
     )
     # ### end Alembic commands ###
 
