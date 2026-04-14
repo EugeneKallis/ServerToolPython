@@ -73,7 +73,7 @@ def upgrade() -> None:
         sa.Column('enabled', sa.Boolean(), nullable=False, server_default='true'),
     )
     op.create_primary_key('pk_arr_instance', 'arr_instance', ['id'])
-    op.create_unique_key('uq_arr_instance_name', 'arr_instance', ['name'])
+    op.create_unique_constraint('uq_arr_instance_name', 'arr_instance', ['name'])
 
     # script_run
     op.create_table(
@@ -88,7 +88,7 @@ def upgrade() -> None:
         sa.Column('output', sa.Text(), nullable=True),
     )
     op.create_primary_key('pk_script_run', 'script_run', ['id'])
-    op.create_unique_key('uq_script_run_run_id', 'script_run', ['run_id'])
+    op.create_unique_constraint('uq_script_run_run_id', 'script_run', ['run_id'])
     op.create_index('ix_script_run_macro_name', 'script_run', ['macro_name'])
     op.create_index('ix_script_run_run_id', 'script_run', ['run_id'])
 
@@ -129,7 +129,7 @@ def upgrade() -> None:
         sa.Column('created_at', sa.DateTime(), nullable=False),
     )
     op.create_primary_key('pk_scraped_item', 'scraped_item', ['id'])
-    op.create_unique_key('uq_scraped_item_magnet_link', 'scraped_item', ['magnet_link'])
+    op.create_unique_constraint('uq_scraped_item_magnet_link', 'scraped_item', ['magnet_link'])
     op.create_index('ix_scraped_item_source', 'scraped_item', ['source'])
 
     # scraped_item_file
@@ -144,7 +144,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['item_id'], ['scraped_item.id'], ondelete='CASCADE'),
     )
     op.create_primary_key('pk_scraped_item_file', 'scraped_item_file', ['id'])
-    op.create_unique_key('uq_scraped_item_file_magnet_link', 'scraped_item_file', ['magnet_link'])
+    op.create_unique_constraint('uq_scraped_item_file_magnet_link', 'scraped_item_file', ['magnet_link'])
 
     # chat_conversation
     op.create_table(
