@@ -8,7 +8,20 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import engine, wait_for_db
 from .models import Base, ScriptRun, ChatConversation, ChatMessage
-from app.routers import commands, macro_groups, macros, arr_instances, script_runs, agent, schedules, chat, scraper, tools, quick_links, magnet_bridge
+from app.routers import (
+    commands,
+    macro_groups,
+    macros,
+    arr_instances,
+    script_runs,
+    agent,
+    schedules,
+    chat,
+    scraper,
+    tools,
+    quick_links,
+    magnet_bridge,
+)
 from .redis_client import get_redis_client
 from .utils.scheduler import start_scheduler, shutdown_scheduler
 
@@ -17,22 +30,33 @@ from contextlib import asynccontextmanager
 logger = logging.getLogger("backend")
 logging.basicConfig(level=logging.INFO, format="%(name)s %(levelname)s %(message)s")
 
+
+def _create_listener_redis():
+    """
+    Long-lived listeners should not use a short socket read timeout.
+    Blocking BRPOP/pubsub calls can sit idle for long periods by design.
+    """
+    import redis.asyncio as aioredis
+
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    return aioredis.from_url(redis_url, socket_connect_timeout=5)
+
+
 # ── Run-log listener ──────────────────────────────────────────────────────────
 # Tracks in-flight runs keyed by run_id (UUID from agent)
 _active_output: dict[str, list] = {}  # run_id → list of output lines
 _active_started: dict[str, datetime] = {}  # run_id → started_at
+
 
 async def run_log_listener():
     """
     Subscribes to agent_responses and writes ScriptRun entries to the DB.
     Uses run_id for deduplication to handle multiple backend worker processes.
     """
-    import redis.asyncio as aioredis
     from sqlalchemy import select
     from sqlalchemy.orm import Session
-    
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
+
+    r = _create_listener_redis()
     pubsub = r.pubsub()
     await pubsub.subscribe("agent_responses")
     logger.info("Run-log listener subscribed to agent_responses")
@@ -54,7 +78,9 @@ async def run_log_listener():
                 _active_output[run_id] = []
                 with Session(engine) as db:
                     # check if this run_id already exists (consolidated macro run)
-                    run = db.execute(select(ScriptRun).where(ScriptRun.run_id == run_id)).scalar()
+                    run = db.execute(
+                        select(ScriptRun).where(ScriptRun.run_id == run_id)
+                    ).scalar()
                     if not run:
                         started_at = datetime.now(timezone.utc).replace(tzinfo=None)
                         _active_started[run_id] = started_at
@@ -68,7 +94,9 @@ async def run_log_listener():
                         db.commit()
                     else:
                         # Append command header to existing run
-                        run.output = (run.output or "") + f"\n\n--- Executing: {command} ---\n"
+                        run.output = (
+                            run.output or ""
+                        ) + f"\n\n--- Executing: {command} ---\n"
                         db.commit()
 
             elif status == "streaming":
@@ -78,55 +106,61 @@ async def run_log_listener():
 
             elif status in ("completed", "error", "reset"):
                 output_lines = _active_output.pop(run_id, [])
-                started_at = _active_started.get(run_id) # Don't pop yet as more commands might follow
+                started_at = _active_started.get(
+                    run_id
+                )  # Don't pop yet as more commands might follow
                 is_last = data.get("is_last", True)
-                
+
                 finished_at = datetime.now(timezone.utc).replace(tzinfo=None)
-                duration = (finished_at - started_at).total_seconds() if started_at else None
-                success = (status == "completed")
-                
+                duration = (
+                    (finished_at - started_at).total_seconds() if started_at else None
+                )
+                success = status == "completed"
+
                 with Session(engine) as db:
-                    run = db.execute(select(ScriptRun).where(ScriptRun.run_id == run_id)).scalar()
+                    run = db.execute(
+                        select(ScriptRun).where(ScriptRun.run_id == run_id)
+                    ).scalar()
                     if run:
                         # Update output (accumulate)
                         new_output = (run.output or "") + "\n".join(output_lines)
                         run.output = new_output
-                        
+
                         # Update status
                         exit_code = data.get("exit_code", 0)
-                        
+
                         if status == "error" or exit_code != 0:
                             run.success = False
                         elif status == "completed" and is_last:
                             # Only set to True if no previous command in this macro failed
                             if run.success is not False:
                                 run.success = True
-                            
+
                         run.finished_at = finished_at
                         if started_at:
                             run.duration_seconds = round(duration, 2)
-                        
+
                         db.commit()
-                
+
                 if is_last:
                     _active_started.pop(run_id, None)
 
         except Exception as e:
             logger.info(f"[run_log_listener] Error: {e}")
 
+
 # ── Arr Config listener ────────────────────────────────────────────────────────
+
 
 async def arr_config_listener():
     """
     Subscribes to arr_config_requests. When microservices wake up,
     they request the db config. We query and publish to arr_config_updates.
     """
-    import redis.asyncio as aioredis
     from sqlalchemy.orm import Session
     from app.utils.arr_config import broadcast_arr_config
-    
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
+
+    r = _create_listener_redis()
     pubsub = r.pubsub()
     await pubsub.subscribe("arr_config_requests")
     logger.info("Arr config listener subscribed to arr_config_requests")
@@ -143,21 +177,18 @@ async def arr_config_listener():
 
 # ── Scraper results listener ──────────────────────────────────────────────────
 
+
 async def scraper_results_listener():
     """
     Drains the scraper_results Redis list and persists scraped items to the DB.
     The scraper LPUSHes batches; we BRPOP so messages survive backend restarts.
     """
-    import redis.asyncio as aioredis
     from sqlalchemy import select
     from sqlalchemy.orm import Session
     from .models import ScrapedItem, ScrapedItemFile
 
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-
-    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
+    r = _create_listener_redis()
     logger.info("Scraper results listener waiting on scraper_results queue")
-    
 
     while True:
         try:
@@ -183,11 +214,15 @@ async def scraper_results_listener():
                     session.delete(item)
                 if old:
                     session.commit()
-                    logger.info(f"[scraper_results] Cleaned up {len(old)} old hidden items")
+                    logger.info(
+                        f"[scraper_results] Cleaned up {len(old)} old hidden items"
+                    )
 
                 new_count = 0
                 for item_data in items:
-                    identifier = item_data.get("page_url") or item_data.get("magnet_link", "")
+                    identifier = item_data.get("page_url") or item_data.get(
+                        "magnet_link", ""
+                    )
                     if not identifier:
                         continue
 
@@ -199,7 +234,12 @@ async def scraper_results_listener():
                         continue
 
                     if not existing:
-                        title = item_data.get("title", "").replace('"', "").replace("'", "").strip()
+                        title = (
+                            item_data.get("title", "")
+                            .replace('"', "")
+                            .replace("'", "")
+                            .strip()
+                        )
                         tags_str = item_data.get("tags") or ""
                         files = item_data.get("files", [])
 
@@ -216,13 +256,15 @@ async def scraper_results_listener():
                             session.flush()
                             for f in files:
                                 try:
-                                    session.add(ScrapedItemFile(
-                                        item_id=db_item.id,
-                                        magnet_link=f["magnet_link"],
-                                        file_size=f.get("file_size") or None,
-                                        seeds=f.get("seeds"),
-                                        leechers=f.get("leechers"),
-                                    ))
+                                    session.add(
+                                        ScrapedItemFile(
+                                            item_id=db_item.id,
+                                            magnet_link=f["magnet_link"],
+                                            file_size=f.get("file_size") or None,
+                                            seeds=f.get("seeds"),
+                                            leechers=f.get("leechers"),
+                                        )
+                                    )
                                     session.flush()
                                 except Exception:
                                     session.rollback()
@@ -252,6 +294,7 @@ async def scraper_results_listener():
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if wait_for_db():
@@ -269,7 +312,7 @@ async def lifespan(app: FastAPI):
 
     # Start the background run-log listener
     listener_task = asyncio.create_task(run_log_listener())
-    
+
     # Start the arr config listener
     config_task = asyncio.create_task(arr_config_listener())
 
@@ -282,6 +325,7 @@ async def lifespan(app: FastAPI):
     config_task.cancel()
     scraper_task.cancel()
     shutdown_scheduler()
+
 
 app = FastAPI(title="ServerToolPython API", lifespan=lifespan)
 
@@ -320,11 +364,13 @@ api_router.include_router(magnet_bridge.router)
 
 app.include_router(api_router)
 
+
 @app.get("/api/config")
 async def get_config():
     return {
         "ollama_host": os.getenv("OLLAMA_HOST", "http://localhost:11434"),
     }
+
 
 @app.get("/")
 async def index(request: Request):
@@ -341,8 +387,9 @@ async def index(request: Request):
         "redis_status": redis_status,
         "message": "ServerToolPython API",
         "version": "1.0.0-core",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
+
 
 @app.websocket("/ws/terminal")
 async def terminal_websocket(websocket: WebSocket):
@@ -350,18 +397,28 @@ async def terminal_websocket(websocket: WebSocket):
     logger.info("Client connected to terminal WebSocket")
 
     import redis.asyncio as aioredis
+
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    r = aioredis.from_url(redis_url, socket_connect_timeout=5, socket_timeout=5)
-    pubsub = r.pubsub()
-    await pubsub.subscribe("agent_responses")
+    r = aioredis.from_url(redis_url, socket_connect_timeout=10)
 
     async def listen_to_responses():
-        try:
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    await websocket.send_text(message["data"].decode("utf-8"))
-        except Exception as e:
-            logger.info(f"Error in pubsub listener: {e}")
+        while True:
+            try:
+                pubsub = r.pubsub()
+                await pubsub.subscribe("agent_responses")
+                async for message in pubsub.listen():
+                    if message["type"] == "message":
+                        await websocket.send_text(message["data"].decode("utf-8"))
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.info(f"Error in pubsub listener: {e}")
+                await asyncio.sleep(1)
+            finally:
+                try:
+                    await pubsub.unsubscribe("agent_responses")
+                except Exception:
+                    pass
 
     listener_task = asyncio.create_task(listen_to_responses())
 
@@ -372,5 +429,7 @@ async def terminal_websocket(websocket: WebSocket):
         logger.info("Client disconnected from terminal WebSocket")
     finally:
         listener_task.cancel()
-        await pubsub.unsubscribe("agent_responses")
-        await r.close()
+        try:
+            await r.close()
+        except Exception:
+            pass

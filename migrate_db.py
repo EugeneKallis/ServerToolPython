@@ -173,20 +173,46 @@ def copy_table_data(
 
 
 def reset_target_sequences(target_engine, tables: list[str]):
-    """Reset auto-increment sequences to continue from max id in target."""
+    """Reset auto-increment sequences to continue from max id in target.
+    Creates sequences if they don't exist (can happen with migrated/copied tables)."""
     print("Resetting sequences...")
     with target_engine.connect() as conn:
         for table in tables:
             try:
-                result = conn.execute(text(f"SELECT MAX(id) FROM {table}"))
-                max_id = result.scalar() or 0
-                if max_id > 0:
-                    conn.execute(
-                        text(
-                            f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), {max_id}, true)"
-                        )
-                    )
-                    print(f"  {table}: sequence set to {max_id}")
+                # Check if the table exists and has a serial id column
+                result = conn.execute(text(f"""
+                    SELECT column_default
+                    FROM information_schema.columns
+                    WHERE table_name = :table
+                    AND column_name = 'id'
+                    AND table_schema = 'public'
+                """), {"table": table})
+                row = result.fetchone()
+
+                if row is None:
+                    print(f"  {table}: 'id' column not found, skipping sequence")
+                    continue
+
+                current_default = row[0]
+
+                # Get max existing id
+                max_result = conn.execute(text(f"SELECT COALESCE(MAX(id), 0) FROM {table}"))
+                max_id = max_result.scalar()
+
+                # Create or update sequence
+                sequence_name = f"{table}_id_seq"
+                if current_default is None:
+                    # Sequence doesn't exist - create it and attach
+                    conn.execute(text(f"CREATE SEQUENCE IF NOT EXISTS {sequence_name}"))
+                    conn.execute(text(f"ALTER TABLE {table} ALTER COLUMN id SET DEFAULT nextval('{sequence_name}')"))
+                    if max_id > 0:
+                        conn.execute(text(f"SELECT setval('{sequence_name}', {max_id})"))
+                    print(f"  {table}: created sequence {sequence_name}, set to {max_id}")
+                else:
+                    # Sequence exists - just ensure it continues from max
+                    if max_id > 0:
+                        conn.execute(text(f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), {max_id}, true)"))
+                        print(f"  {table}: sequence set to {max_id}")
             except Exception as e:
                 print(f"  {table}: could not reset sequence: {e}")
         conn.commit()
