@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "ServerTool",
+    default: "ServerTool Test",
     template: "ServerTool - %s",
   },
   description: "Manage and execute shell commands via a streaming terminal interface.",
