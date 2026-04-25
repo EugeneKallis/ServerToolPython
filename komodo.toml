@@ -152,7 +152,6 @@ CORS_ALLOWED_ORIGINS = "*"
 name = "trigger-dev-builds"
 [procedure.config]
 webhook_enabled = true
-webhook_branch = "develop"
 
 # Stage 1: sync komodo resources from git
 [[procedure.config.stage]]
@@ -181,7 +180,6 @@ executions = [
 name = "trigger-prod-builds"
 [procedure.config]
 webhook_enabled = true
-webhook_branch = "main"
 
 # Stage 1: sync komodo resources from git
 [[procedure.config.stage]]
