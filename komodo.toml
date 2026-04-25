@@ -1,19 +1,19 @@
 # --- RESOURCE SYNCS (GitOps Self-Management) ---
 [[resource_sync]]
 name = "servertoolpython-sync-dev"
+[resource_sync.config]
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 file_paths = ["komodo.toml"]
-sync_on = "push"
-procedure = "trigger-dev-builds"
+auto_sync = true
 
 [[resource_sync]]
 name = "servertoolpython-sync-prod"
+[resource_sync.config]
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 file_paths = ["komodo.toml"]
-sync_on = "push"
-procedure = "trigger-prod-builds"
+auto_sync = true
 
 # --- BACKEND ---
 [[build]]
@@ -147,25 +147,18 @@ POSTGRES_HOST = "[[POSTGRES_HOST]]"
 REDIS_URL = "[[REDIS_URL]]"
 CORS_ALLOWED_ORIGINS = "*"
 
-# --- TRIGGERS ---
-[trigger]
-type = "github"
-enabled = true
-
-[[trigger.rule]]
-branch = "develop"
-procedure = "trigger-dev-builds"
-sync = true
-
-[[trigger.rule]]
-branch = "main"
-procedure = "trigger-prod-builds"
-sync = true
-
 # --- PROCEDURES (Combined Triggers) ---
 [[procedure]]
 name = "trigger-dev-builds"
 
+# Stage 1: sync komodo resources from git
+[[procedure.config.stage]]
+name = "Sync Dev Config"
+executions = [
+    { execution.type = "RunSync", execution.params.sync = "servertoolpython-sync-dev" }
+]
+
+# Stage 2: build all dev images in parallel
 [[procedure.config.stage]]
 name = "Build All Dev"
 executions = [
@@ -174,13 +167,35 @@ executions = [
     { execution.type = "RunBuild", execution.params.build = "servertoolpython-agent-dev" }
 ]
 
+# Stage 3: deploy the dev stack with the new images
+[[procedure.config.stage]]
+name = "Deploy Dev Stack"
+executions = [
+    { execution.type = "DeployStack", execution.params.stack = "servertoolpython-dev" }
+]
+
 [[procedure]]
 name = "trigger-prod-builds"
 
+# Stage 1: sync komodo resources from git
+[[procedure.config.stage]]
+name = "Sync Prod Config"
+executions = [
+    { execution.type = "RunSync", execution.params.sync = "servertoolpython-sync-prod" }
+]
+
+# Stage 2: build all prod images in parallel
 [[procedure.config.stage]]
 name = "Build All Prod"
 executions = [
     { execution.type = "RunBuild", execution.params.build = "servertoolpython-backend-prod" },
     { execution.type = "RunBuild", execution.params.build = "servertoolpython-frontend-prod" },
     { execution.type = "RunBuild", execution.params.build = "servertoolpython-agent-prod" }
+]
+
+# Stage 3: deploy the prod stack with the new images
+[[procedure.config.stage]]
+name = "Deploy Prod Stack"
+executions = [
+    { execution.type = "DeployStack", execution.params.stack = "servertoolpython-prod" }
 ]
