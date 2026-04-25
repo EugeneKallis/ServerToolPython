@@ -73,77 +73,43 @@ image_registry = [
   { domain = "docker.io", account = "eugenekallis" }
 ]
 
-# --- SCRAPER ---
-[[build]]
-name = "servertoolpython-scraper-dev"
-[build.config]
-builder = "docker-builder"
+# --- STACKS ---
+[[stack]]
+name = "servertoolpython-dev"
+builds = [
+  "servertoolpython-backend-dev",
+  "servertoolpython-frontend-dev",
+  "servertoolpython-agent-dev"
+]
+[stack.config]
+server = "lxc-docker"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
-build_path = "scraper"
-dockerfile_path = "Dockerfile"
-image_registry = [
-  { domain = "docker.io", account = "eugenekallis" }
-]
+files = ["docker-compose.dev.yml"]
+auto_update = true
 
-[[build]]
-name = "servertoolpython-scraper-prod"
-[build.config]
-builder = "docker-builder"
+[stack.env]
+POSTGRES_USER = "postgres"
+POSTGRES_DB = "servertool_dev"
+POSTGRES_PASSWORD = "[[POSTGRES_PASSWORD]]"
+CORS_ALLOWED_ORIGINS = "*"
+
+[[stack]]
+name = "servertoolpython-prod"
+builds = [
+  "servertoolpython-backend-prod",
+  "servertoolpython-frontend-prod",
+  "servertoolpython-agent-prod"
+]
+[stack.config]
+server = "lxc-docker"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
-build_path = "scraper"
-dockerfile_path = "Dockerfile"
-image_registry = [
-  { domain = "docker.io", account = "eugenekallis" }
-]
+files = ["docker-compose.prod.yml"]
+auto_update = true
 
-# --- ARR SEARCHER ---
-[[build]]
-name = "servertoolpython-arr-searcher-dev"
-[build.config]
-builder = "docker-builder"
-repo = "EugeneKallis/ServerToolPython"
-branch = "develop"
-build_path = "arr_searcher"
-dockerfile_path = "Dockerfile"
-image_registry = [
-  { domain = "docker.io", account = "eugenekallis" }
-]
-
-[[build]]
-name = "servertoolpython-arr-searcher-prod"
-[build.config]
-builder = "docker-builder"
-repo = "EugeneKallis/ServerToolPython"
-branch = "main"
-build_path = "arr_searcher"
-dockerfile_path = "Dockerfile"
-image_registry = [
-  { domain = "docker.io", account = "eugenekallis" }
-]
-
-# --- MAGNET BRIDGE ---
-[[build]]
-name = "servertoolpython-magnet-bridge-dev"
-[build.config]
-builder = "docker-builder"
-repo = "EugeneKallis/ServerToolPython"
-branch = "develop"
-build_path = "magnet_bridge"
-dockerfile_path = "Dockerfile"
-image_registry = [
-  { domain = "docker.io", account = "eugenekallis" }
-]
-
-[[build]]
-name = "servertoolpython-magnet-bridge-prod"
-[build.config]
-builder = "docker-builder"
-repo = "EugeneKallis/ServerToolPython"
-branch = "main"
-build_path = "magnet_bridge"
-dockerfile_path = "Dockerfile"
-image_registry = [
-  { domain = "docker.io", account = "eugenekallis" }
-]
+[stack.env]
+POSTGRES_USER = "postgres"
+POSTGRES_DB = "servertool_prod"
+POSTGRES_PASSWORD = "[[POSTGRES_PASSWORD]]"
+CORS_ALLOWED_ORIGINS = "*"
