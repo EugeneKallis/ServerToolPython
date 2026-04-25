@@ -5,7 +5,8 @@ name = "servertoolpython-backend-dev"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
-dockerfile_path = "backend/Dockerfile"
+build_path = "backend"
+dockerfile_path = "Dockerfile"
 
 [[build]]
 name = "servertoolpython-backend-prod"
@@ -13,7 +14,8 @@ name = "servertoolpython-backend-prod"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
-dockerfile_path = "backend/Dockerfile"
+build_path = "backend"
+dockerfile_path = "Dockerfile"
 
 # --- FRONTEND ---
 [[build]]
@@ -22,7 +24,8 @@ name = "servertoolpython-frontend-dev"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
-dockerfile_path = "frontend/Dockerfile"
+build_path = "frontend"
+dockerfile_path = "Dockerfile"
 
 [[build]]
 name = "servertoolpython-frontend-prod"
@@ -30,7 +33,8 @@ name = "servertoolpython-frontend-prod"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
-dockerfile_path = "frontend/Dockerfile"
+build_path = "frontend"
+dockerfile_path = "Dockerfile"
 
 # --- AGENT ---
 [[build]]
@@ -39,7 +43,8 @@ name = "servertoolpython-agent-dev"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
-dockerfile_path = "agent/Dockerfile"
+build_path = "agent"
+dockerfile_path = "Dockerfile"
 
 [[build]]
 name = "servertoolpython-agent-prod"
@@ -47,7 +52,8 @@ name = "servertoolpython-agent-prod"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
-dockerfile_path = "agent/Dockerfile"
+build_path = "agent"
+dockerfile_path = "Dockerfile"
 
 # --- SCRAPER ---
 [[build]]
@@ -56,7 +62,8 @@ name = "servertoolpython-scraper-dev"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
-dockerfile_path = "scraper/Dockerfile"
+build_path = "scraper"
+dockerfile_path = "Dockerfile"
 
 [[build]]
 name = "servertoolpython-scraper-prod"
@@ -64,7 +71,8 @@ name = "servertoolpython-scraper-prod"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
-dockerfile_path = "scraper/Dockerfile"
+build_path = "scraper"
+dockerfile_path = "Dockerfile"
 
 # --- ARR SEARCHER ---
 [[build]]
@@ -73,7 +81,8 @@ name = "servertoolpython-arr-searcher-dev"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
-dockerfile_path = "arr_searcher/Dockerfile"
+build_path = "arr_searcher"
+dockerfile_path = "Dockerfile"
 
 [[build]]
 name = "servertoolpython-arr-searcher-prod"
@@ -81,7 +90,8 @@ name = "servertoolpython-arr-searcher-prod"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
-dockerfile_path = "arr_searcher/Dockerfile"
+build_path = "arr_searcher"
+dockerfile_path = "Dockerfile"
 
 # --- MAGNET BRIDGE ---
 [[build]]
@@ -90,7 +100,8 @@ name = "servertoolpython-magnet-bridge-dev"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
-dockerfile_path = "magnet_bridge/Dockerfile"
+build_path = "magnet_bridge"
+dockerfile_path = "Dockerfile"
 
 [[build]]
 name = "servertoolpython-magnet-bridge-prod"
@@ -98,4 +109,5 @@ name = "servertoolpython-magnet-bridge-prod"
 builder = "docker-builder"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
-dockerfile_path = "magnet_bridge/Dockerfile"
+build_path = "magnet_bridge"
+dockerfile_path = "Dockerfile"
