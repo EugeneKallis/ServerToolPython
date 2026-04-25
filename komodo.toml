@@ -1,0 +1,89 @@
+# --- BACKEND ---
+[[build]]
+name = "backend-dev"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "develop"
+dockerfile_path = "backend/Dockerfile"
+
+[[build]]
+name = "backend-prod"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "main"
+dockerfile_path = "backend/Dockerfile"
+
+# --- FRONTEND ---
+[[build]]
+name = "frontend-dev"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "develop"
+dockerfile_path = "frontend/Dockerfile"
+
+[[build]]
+name = "frontend-prod"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "main"
+dockerfile_path = "frontend/Dockerfile"
+
+# --- AGENT ---
+[[build]]
+name = "agent-dev"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "develop"
+dockerfile_path = "agent/Dockerfile"
+
+[[build]]
+name = "agent-prod"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "main"
+dockerfile_path = "agent/Dockerfile"
+
+# --- SCRAPER ---
+[[build]]
+name = "scraper-dev"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "develop"
+dockerfile_path = "scraper/Dockerfile"
+
+[[build]]
+name = "scraper-prod"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "main"
+dockerfile_path = "scraper/Dockerfile"
+
+# --- ARR SEARCHER ---
+[[build]]
+name = "arr-searcher-dev"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "develop"
+dockerfile_path = "arr_searcher/Dockerfile"
+
+[[build]]
+name = "arr-searcher-prod"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "main"
+dockerfile_path = "arr_searcher/Dockerfile"
+
+# --- MAGNET BRIDGE ---
+[[build]]
+name = "magnet-bridge-dev"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "develop"
+dockerfile_path = "magnet_bridge/Dockerfile"
+
+[[build]]
+name = "magnet-bridge-prod"
+[build.config]
+repo = "https://github.com/EugeneKallis/ServerToolPython.git"
+branch = "main"
+dockerfile_path = "magnet_bridge/Dockerfile"
