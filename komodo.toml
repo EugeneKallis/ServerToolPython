@@ -7,6 +7,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "backend"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 [[build]]
 name = "servertoolpython-backend-prod"
@@ -16,6 +19,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "backend"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 # --- FRONTEND ---
 [[build]]
@@ -26,6 +32,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "frontend"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 [[build]]
 name = "servertoolpython-frontend-prod"
@@ -35,6 +44,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "frontend"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 # --- AGENT ---
 [[build]]
@@ -45,6 +57,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "agent"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 [[build]]
 name = "servertoolpython-agent-prod"
@@ -54,6 +69,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "agent"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 # --- SCRAPER ---
 [[build]]
@@ -64,6 +82,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "scraper"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 [[build]]
 name = "servertoolpython-scraper-prod"
@@ -73,6 +94,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "scraper"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 # --- ARR SEARCHER ---
 [[build]]
@@ -83,6 +107,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "arr_searcher"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 [[build]]
 name = "servertoolpython-arr-searcher-prod"
@@ -92,6 +119,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "arr_searcher"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 # --- MAGNET BRIDGE ---
 [[build]]
@@ -102,6 +132,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "magnet_bridge"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
 
 [[build]]
 name = "servertoolpython-magnet-bridge-prod"
@@ -111,3 +144,6 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "magnet_bridge"
 dockerfile_path = "Dockerfile"
+image_registry = [
+  { domain = "docker.io", account = "eugenekallis" }
+]
