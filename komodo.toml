@@ -133,30 +133,22 @@ CORS_ALLOWED_ORIGINS = "*"
 # --- PROCEDURES (Combined Triggers) ---
 [[procedure]]
 name = "trigger-dev-builds"
-[[procedure.step]]
+
+[[procedure.config.stage]]
 name = "Build All Dev"
-type = "build"
-resource = "servertoolpython-backend-dev"
-[[procedure.step]]
-name = "Build Frontend Dev"
-type = "build"
-resource = "servertoolpython-frontend-dev"
-[[procedure.step]]
-name = "Build Agent Dev"
-type = "build"
-resource = "servertoolpython-agent-dev"
+executions = [
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-backend-dev" },
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-frontend-dev" },
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-agent-dev" }
+]
 
 [[procedure]]
 name = "trigger-prod-builds"
-[[procedure.step]]
+
+[[procedure.config.stage]]
 name = "Build All Prod"
-type = "build"
-resource = "servertoolpython-backend-prod"
-[[procedure.step]]
-name = "Build Frontend Prod"
-type = "build"
-resource = "servertoolpython-frontend-prod"
-[[procedure.step]]
-name = "Build Agent Prod"
-type = "build"
-resource = "servertoolpython-agent-prod"
+executions = [
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-backend-prod" },
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-frontend-prod" },
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-agent-prod" }
+]
