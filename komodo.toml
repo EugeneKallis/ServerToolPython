@@ -85,7 +85,7 @@ builds = [
 server = "lxc-docker"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
-files = ["docker-compose.dev.yml"]
+file_paths = ["docker-compose.dev.yml"]
 auto_update = true
 
 [stack.env]
@@ -105,7 +105,7 @@ builds = [
 server = "lxc-docker"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
-files = ["docker-compose.prod.yml"]
+file_paths = ["docker-compose.prod.yml"]
 auto_update = true
 
 [stack.env]
