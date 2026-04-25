@@ -1,3 +1,20 @@
+# --- RESOURCE SYNCS (GitOps Self-Management) ---
+[[resource_sync]]
+name = "servertoolpython-sync-dev"
+[resource_sync.config]
+repo = "EugeneKallis/ServerToolPython"
+branch = "develop"
+file_paths = ["komodo.toml"]
+procedure = "trigger-dev-builds" # Triggers builds after sync
+
+[[resource_sync]]
+name = "servertoolpython-sync-prod"
+[resource_sync.config]
+repo = "EugeneKallis/ServerToolPython"
+branch = "main"
+file_paths = ["komodo.toml"]
+procedure = "trigger-prod-builds" # Triggers builds after sync
+
 # --- BACKEND ---
 [[build]]
 name = "servertoolpython-backend-dev"
@@ -129,6 +146,21 @@ POSTGRES_PASSWORD = "[[POSTGRES_PASSWORD]]"
 POSTGRES_HOST = "[[POSTGRES_HOST]]"
 REDIS_URL = "[[REDIS_URL]]"
 CORS_ALLOWED_ORIGINS = "*"
+
+# --- TRIGGERS ---
+[trigger]
+type = "github"
+enabled = true
+
+[[trigger.rule]]
+branch = "develop"
+procedure = "trigger-dev-builds"
+sync = true
+
+[[trigger.rule]]
+branch = "main"
+procedure = "trigger-prod-builds"
+sync = true
 
 # --- PROCEDURES (Combined Triggers) ---
 [[procedure]]
