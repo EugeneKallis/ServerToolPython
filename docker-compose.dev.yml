@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   backend:
-    image: eugenekallis/servertoolpython-backend-dev:latest
+    image: eugenekallis/servertoolpython-backend:dev
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -24,7 +24,7 @@ services:
       start_period: 10s
 
   frontend:
-    image: eugenekallis/servertoolpython-frontend-dev:latest
+    image: eugenekallis/servertoolpython-frontend:dev
     environment:
       - NEXT_PUBLIC_API_URL=/api
     ports:
@@ -39,7 +39,7 @@ services:
       start_period: 10s
 
   agent:
-    image: eugenekallis/servertoolpython-agent-dev:latest
+    image: eugenekallis/servertoolpython-agent:dev
     environment:
       - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     volumes:

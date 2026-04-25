@@ -7,6 +7,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "backend"
 dockerfile_path = "Dockerfile"
+image_name = "servertoolpython-backend"
+image_tag = "dev"
+include_latest_tag = false
 image_registry = [
   { domain = "docker.io", account = "eugenekallis" }
 ]
@@ -19,6 +22,7 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "backend"
 dockerfile_path = "Dockerfile"
+image_name = "servertoolpython-backend"
 image_registry = [
   { domain = "docker.io", account = "eugenekallis" }
 ]
@@ -32,6 +36,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "frontend"
 dockerfile_path = "Dockerfile"
+image_name = "servertoolpython-frontend"
+image_tag = "dev"
+include_latest_tag = false
 image_registry = [
   { domain = "docker.io", account = "eugenekallis" }
 ]
@@ -44,6 +51,7 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "frontend"
 dockerfile_path = "Dockerfile"
+image_name = "servertoolpython-frontend"
 image_registry = [
   { domain = "docker.io", account = "eugenekallis" }
 ]
@@ -57,6 +65,9 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 build_path = "agent"
 dockerfile_path = "Dockerfile"
+image_name = "servertoolpython-agent"
+image_tag = "dev"
+include_latest_tag = false
 image_registry = [
   { domain = "docker.io", account = "eugenekallis" }
 ]
@@ -69,6 +80,7 @@ repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 build_path = "agent"
 dockerfile_path = "Dockerfile"
+image_name = "servertoolpython-agent"
 image_registry = [
   { domain = "docker.io", account = "eugenekallis" }
 ]
@@ -88,7 +100,7 @@ branch = "develop"
 file_paths = ["docker-compose.dev.yml"]
 auto_update = true
 
-[stack.env]
+[stack.config.env]
 POSTGRES_USER = "postgres"
 POSTGRES_DB = "servertool_dev"
 POSTGRES_PASSWORD = "[[POSTGRES_PASSWORD]]"
@@ -108,7 +120,7 @@ branch = "main"
 file_paths = ["docker-compose.prod.yml"]
 auto_update = true
 
-[stack.env]
+[stack.config.env]
 POSTGRES_USER = "postgres"
 POSTGRES_DB = "servertool_prod"
 POSTGRES_PASSWORD = "[[POSTGRES_PASSWORD]]"
