@@ -2,6 +2,7 @@
 [[resource_sync]]
 name = "servertoolpython-sync-dev"
 [resource_sync.config]
+git_account = "EugeneKallis"
 repo = "EugeneKallis/ServerToolPython"
 branch = "develop"
 file_paths = ["komodo.toml"]
@@ -10,6 +11,7 @@ procedure = "trigger-dev-builds" # Triggers builds after sync
 [[resource_sync]]
 name = "servertoolpython-sync-prod"
 [resource_sync.config]
+git_account = "EugeneKallis"
 repo = "EugeneKallis/ServerToolPython"
 branch = "main"
 file_paths = ["komodo.toml"]
