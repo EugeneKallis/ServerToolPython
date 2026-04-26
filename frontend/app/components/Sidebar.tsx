@@ -68,7 +68,7 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
           <Link href='/' onClick={onClose} className='flex items-center gap-3 group'>
             <div className='w-1.5 h-5 kinetic-gradient' />
             <span className='font-headline text-sm font-bold tracking-widest uppercase text-primary-fixed group-hover:text-primary-container transition-colors'>
-              Server Tool
+              Server Tool Test
             </span>
           </Link>
         </div>
