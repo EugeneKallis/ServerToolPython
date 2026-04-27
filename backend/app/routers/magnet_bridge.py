@@ -18,30 +18,32 @@ async def add_torrent(
     downloadUncached: str = Form("false"),
 ):
     async with httpx.AsyncClient() as client:
-        form_data = {
-            "arr": MANAGED_CATEGORY,
-            "downloadUncached": downloadUncached,
-            "action": "symlink",
-            "debrid": "",
-            "downloadFolder": "/mnt/debrid/downloads",
-        }
+        multipart = [
+            (k, (None, str(v)))
+            for k, v in {
+                "arr": MANAGED_CATEGORY,
+                "downloadUncached": downloadUncached,
+                "action": "symlink",
+                "debrid": "",
+                "downloadFolder": "/mnt/debrid/downloads",
+            }.items()
+        ]
 
         files_data = None
         if urls and urls.startswith("magnet:"):
-            form_data["urls"] = urls
+            multipart.append(("urls", (None, urls)))
         elif urls and urls.startswith("http"):
-            # Torrent file URL — fetch and submit as file upload
             try:
                 torrent_resp = await client.get(urls, timeout=30.0, follow_redirects=True)
                 if torrent_resp.status_code != 200:
                     raise HTTPException(status_code=502, detail=f"Failed to fetch torrent: HTTP {torrent_resp.status_code}")
-                files_data = {"files": ("download.torrent", torrent_resp.content, "application/x-bittorrent")}
+                files_data = [("files", ("download.torrent", torrent_resp.content, "application/x-bittorrent"))]
             except HTTPException:
                 raise
             except Exception as e:
                 raise HTTPException(status_code=502, detail=f"Failed to fetch torrent: {str(e)}")
         elif files:
-            files_data = {"files": (files.filename, await files.read(), files.content_type)}
+            files_data = [("files", (files.filename, await files.read(), files.content_type))]
         else:
             raise HTTPException(status_code=400, detail="No magnet link or file provided")
 
@@ -49,8 +51,7 @@ async def add_torrent(
             target_url = f"{MAGNET_BRIDGE_URL}/api/{MANAGED_CATEGORY}/add"
             resp = await client.post(
                 target_url,
-                data=form_data,
-                files=files_data,
+                files=files_data if files_data else multipart,
                 timeout=30.0,
             )
 
