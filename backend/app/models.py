@@ -124,21 +124,6 @@ class ScrapedItem(Base):
     is_downloaded: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    files: Mapped[List["ScrapedItemFile"]] = relationship(back_populates="item", cascade="all, delete-orphan")
-
-
-class ScrapedItemFile(Base):
-    __tablename__ = "scraped_item_file"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    item_id: Mapped[int] = mapped_column(ForeignKey("scraped_item.id"))
-    magnet_link: Mapped[str] = mapped_column(String, unique=True, index=True)
-    file_size: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    seeds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    leechers: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-
-    item: Mapped["ScrapedItem"] = relationship(back_populates="files")
-
 
 class ChatConversation(Base):
     __tablename__ = "chat_conversation"

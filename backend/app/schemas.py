@@ -126,14 +126,6 @@ class MacroScheduleRead(MacroScheduleBase):
 
 # ── Scraper ───────────────────────────────────────────────────────────────────
 
-class ScrapedItemFileRead(BaseModel):
-    id: int
-    magnet_link: str
-    file_size: Optional[str] = None
-    seeds: Optional[int] = None
-    leechers: Optional[int] = None
-    model_config = ConfigDict(from_attributes=True)
-
 class ScrapedItemRead(BaseModel):
     id: int
     title: str
@@ -145,7 +137,6 @@ class ScrapedItemRead(BaseModel):
     is_hidden: bool
     is_downloaded: bool
     created_at: datetime
-    files: List[ScrapedItemFileRead] = []
     model_config = ConfigDict(from_attributes=True)
 
 

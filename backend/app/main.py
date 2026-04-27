@@ -185,7 +185,7 @@ async def scraper_results_listener():
     """
     from sqlalchemy import select
     from sqlalchemy.orm import Session
-    from .models import ScrapedItem, ScrapedItemFile
+    from .models import ScrapedItem
 
     r = _create_listener_redis()
     logger.info("Scraper results listener waiting on scraper_results queue")
@@ -241,35 +241,7 @@ async def scraper_results_listener():
                             .strip()
                         )
                         tags_str = item_data.get("tags") or ""
-                        files = item_data.get("files", [])
-
-                        if source == "projectjav":
-                            db_item = ScrapedItem(
-                                title=title,
-                                image_url=item_data.get("image_url") or None,
-                                magnet_link=identifier,
-                                torrent_link=None,
-                                tags=tags_str or None,
-                                source=source,
-                            )
-                            session.add(db_item)
-                            session.flush()
-                            for f in files:
-                                try:
-                                    session.add(
-                                        ScrapedItemFile(
-                                            item_id=db_item.id,
-                                            magnet_link=f["magnet_link"],
-                                            file_size=f.get("file_size") or None,
-                                            seeds=f.get("seeds"),
-                                            leechers=f.get("leechers"),
-                                        )
-                                    )
-                                    session.flush()
-                                except Exception:
-                                    session.rollback()
-                        else:
-                            db_item = ScrapedItem(
+                        db_item = ScrapedItem(
                                 title=title,
                                 image_url=item_data.get("image_url") or None,
                                 magnet_link=identifier,
@@ -298,6 +270,12 @@ async def scraper_results_listener():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if wait_for_db():
+        try:
+            alembic_cfg = AlembicConfig("alembic.ini")
+            command.upgrade(alembic_cfg, "head")
+            logger.info("Alembic migrations applied successfully")
+        except Exception as e:
+            logger.error(f"Alembic migration failed: {e}")
         Base.metadata.create_all(engine, checkfirst=True)
         start_scheduler()
     else:

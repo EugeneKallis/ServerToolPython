@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, selectinload
 import redis.asyncio as aioredis
 
 from ..database import get_session
-from ..models import ScrapedItem, ScrapedItemFile
+from ..models import ScrapedItem
 from ..schemas import ScrapedItemRead
 
 router = APIRouter(prefix="/scraper", tags=["scraper"])
@@ -31,7 +31,7 @@ async def get_redis():
 
 @router.get("/items", response_model=List[ScrapedItemRead])
 def list_items(source: Optional[str] = None, session: Session = Depends(get_session)):
-    q = select(ScrapedItem).options(selectinload(ScrapedItem.files)).where(ScrapedItem.is_hidden == False)
+    q = select(ScrapedItem).where(ScrapedItem.is_hidden == False)
     if source:
         q = q.where(ScrapedItem.source == source)
     q = q.order_by(ScrapedItem.created_at.desc())
