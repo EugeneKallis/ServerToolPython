@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .database import engine, wait_for_db
 from .models import Base, ScriptRun, ChatConversation, ChatMessage
+from alembic.config import Config as AlembicConfig
+from alembic import command
 from app.routers import (
     commands,
     macro_groups,
@@ -242,14 +244,14 @@ async def scraper_results_listener():
                         )
                         tags_str = item_data.get("tags") or ""
                         db_item = ScrapedItem(
-                                title=title,
-                                image_url=item_data.get("image_url") or None,
-                                magnet_link=identifier,
-                                torrent_link=item_data.get("torrent_link") or None,
-                                tags=tags_str or None,
-                                source=source,
-                            )
-                            session.add(db_item)
+                            title=title,
+                            image_url=item_data.get("image_url") or None,
+                            magnet_link=identifier,
+                            torrent_link=item_data.get("torrent_link") or None,
+                            tags=tags_str or None,
+                            source=source,
+                        )
+                        session.add(db_item)
 
                         try:
                             session.flush()

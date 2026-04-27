@@ -6,14 +6,6 @@ import { RefreshCw, Download, EyeOff, Undo2, Trash2, ChevronDown, ChevronRight }
 const SOURCES = ['141jav', 'projectjav', 'pornrips'] as const;
 type Source = typeof SOURCES[number];
 
-interface ScrapedFile {
-  id: number;
-  magnet_link: string;
-  file_size: string | null;
-  seeds: number | null;
-  leechers: number | null;
-}
-
 interface ScrapedItem {
   id: number;
   title: string;
@@ -26,17 +18,6 @@ interface ScrapedItem {
   is_downloaded: boolean;
   created_at: string;
 }
-
-function parseSize(s: string): number {
-  const lower = s.toLowerCase().trim();
-  const num = parseFloat(lower);
-  if (lower.endsWith('gb')) return num * 1024 ** 3;
-  if (lower.endsWith('mb')) return num * 1024 ** 2;
-  if (lower.endsWith('kb')) return num * 1024;
-  return num;
-}
-
-
 
 type BridgeStateValue = 'idle' | 'loading' | 'done' | 'error';
 
@@ -54,7 +35,6 @@ function ItemCard({ item, isActive, onHide }: {
   const images = item.image_url ? item.image_url.split(',') : [];
   const mainImage = images[0] ?? null;
   const tags = item.tags ? item.tags.split(',').filter(Boolean) : [];
-  const isProjectjav = item.source === 'projectjav';
   const nonProjectjavMagnet = item.source === 'pornrips' ? (item.torrent_link ?? '') : item.magnet_link;
 
   const sendToBridge = useCallback(async (magnetLink: string, fileId: number, downloadUncached: boolean) => {
@@ -77,58 +57,36 @@ function ItemCard({ item, isActive, onHide }: {
       setState(fileId, 'error');
       setTimeout(() => setState(fileId, 'idle'), 3000);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item.id, onHide, bridgeStates]);
 
-  useEffect(() => {
-    if (!isActive) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-
-      if (e.key === 'd' || e.key === 'Enter') {
-        e.preventDefault();
-        if (isProjectjav && best) {
-          if (getState(best.id) === 'loading' || getState(best.id) === 'done') return;
-          sendToBridge(best.magnet_link, best.id, true);
-        } else if (!isProjectjav && nonProjectjavMagnet) {
-          if (getState(0) === 'loading' || getState(0) === 'done') return;
-          sendToBridge(nonProjectjavMagnet, 0, true);
-        }
-      } else if (e.key === 'h' || e.key === 'Backspace' || e.key === 'Delete') {
-        e.preventDefault();
-        onHide(item.id);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, item.id, nonProjectjavMagnet, isProjectjav, best, onHide, sendToBridge, bridgeStates]);
-
-  const stateLabel = (s: BridgeStateValue, fallback: string) =>
-    s === 'loading' ? '…' : s === 'done' ? '✓' : s === 'error' ? '✗' : fallback;
+  const stateLabel = (state: BridgeStateValue, fallback: string) => {
+    if (state === 'loading') return '…';
+    if (state === 'done') return '✓';
+    if (state === 'error') return '✗';
+    return fallback;
+  };
 
   return (
-    <div className={`h-full w-full min-w-0 flex flex-col bg-surface-container border-b border-outline-variant overflow-hidden transition-opacity ${item.is_downloaded ? 'opacity-50' : ''}`}>
-      {/* Image(s) */}
-      <div className="flex-1 min-h-0 bg-black overflow-hidden relative flex">
-        {item.source === 'pornrips' && images.length >= 2 ? (
+    <div className={`relative flex flex-col h-full bg-surface-container-low border border-outline-variant snap-start min-h-0 ${isActive ? 'ring-1 ring-primary-fixed-dim' : ''}`}>
+      {/* Image area */}
+      <div className="shrink-0 relative w-full pt-[56.25%] bg-surface-dim overflow-hidden">
+        {images.length > 1 ? (
           <>
+            <img
+              src={images[0]}
+              alt={item.title}
+              className="absolute inset-0 w-full h-full object-contain"
+              referrerPolicy="no-referrer"
+              onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+            />
             <button
-              className="flex-1 min-w-0 cursor-zoom-in relative"
-              onClick={() => window.open(images[0], '_blank', 'noopener,noreferrer')}
-              tabIndex={-1}
+              className="absolute bottom-1 right-1 flex items-center gap-1 text-[9px] font-mono text-primary-fixed-dim bg-surface-container-high/80 border border-outline-variant px-1.5 py-0.5 hover:bg-surface-container-high transition-colors z-10"
+              onClick={() => window.open(images[1], '_blank', 'noopener,noreferrer')}
             >
-              <img
-                src={images[0]}
-                alt={item.title}
-                className="absolute inset-0 w-full h-full object-contain"
-                referrerPolicy="no-referrer"
-                onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
-              />
+              <span>+1</span>
             </button>
-            <div className="w-px bg-outline-variant shrink-0" />
             <button
-              className="flex-1 min-w-0 cursor-zoom-in relative"
+              className="flex-1 min-w-0 cursor-zoom-in absolute inset-0"
               onClick={() => window.open(images[1], '_blank', 'noopener,noreferrer')}
               tabIndex={-1}
             >
@@ -162,53 +120,24 @@ function ItemCard({ item, isActive, onHide }: {
 
       {/* Footer */}
       <div className="shrink-0 w-full min-w-0 px-3 sm:px-4 pt-3 pb-3 border-t border-outline-variant flex flex-col gap-2">
-        {/* Title */}
         <p className={`text-xs sm:text-sm font-mono text-on-surface leading-snug truncate ${item.is_downloaded ? 'line-through text-outline' : ''}`}>
           {item.title}
         </p>
 
         {tags.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {tags.slice(0, 2).map(tag => (
-                  <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 border border-outline-variant text-outline bg-surface-container-high hidden sm:inline shrink-0">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            {/* Standard download button */}
-            <div className="flex items-center gap-2 flex-wrap w-full">
-              <div className="flex items-center gap-2 ml-auto">
-                {nonProjectjavMagnet && (() => {
-                  const fs = getState(0);
-                  return (
-                    <button
-                      onClick={() => sendToBridge(nonProjectjavMagnet, 0, true)}
-                      disabled={fs === 'loading' || fs === 'done'}
-                      title="Download"
-                      className="flex items-center gap-1.5 text-xs font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Download size={14} className="shrink-0" />
-                      <span className="hidden sm:inline text-[10px]">
-                        {stateLabel(fs, 'Download')}
-                      </span>
-                      <span className="sm:hidden text-[10px]">
-                        {stateLabel(fs, '')}
-                      </span>
-                    </button>
-                  );
-                })()}
-          /* Non-projectjav (or projectjav with no files) — original layout */
-          <div className="flex items-center gap-2 flex-wrap w-full">
-            {/* Meta info for non-projectjav */}
+          <div className="flex flex-wrap gap-1">
             {tags.slice(0, 2).map(tag => (
               <span key={tag} className="text-[9px] font-mono px-1.5 py-0.5 border border-outline-variant text-outline bg-surface-container-high hidden sm:inline shrink-0">
                 {tag}
               </span>
             ))}
-            {/* Buttons — push to right */}
+          </div>
+        )}
+
+        {nonProjectjavMagnet && (
+          <div className="flex items-center gap-2 flex-wrap w-full">
             <div className="flex items-center gap-2 ml-auto">
-              {nonProjectjavMagnet && (() => {
+              {(() => {
                 const fs = getState(0);
                 return (
                   <button
@@ -322,7 +251,6 @@ export default function ScraperPage() {
     fetchStatus();
   };
 
-  // Tag counts
   const tagMap: Record<string, number> = {};
   items.forEach(item => {
     (item.tags ?? '').split(',').filter(Boolean).forEach(t => {
@@ -436,31 +364,29 @@ export default function ScraperPage() {
             )}
           </div>
         )}
+      </div>
 
-      </div>{/* end controls */}
-
-      {/* Items — snap scroll */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory">
-        {loading && (
-          <div className="h-full flex items-center justify-center text-outline text-xs font-mono">Loading…</div>
-        )}
-        {!loading && filtered.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center gap-3 text-outline">
-            <p className="text-xs font-mono">No items found.</p>
-            <button onClick={triggerScrape} disabled={isScraping} className="text-xs font-mono text-primary-fixed-dim border border-outline-variant px-4 py-2.5 hover:bg-surface-container-high disabled:opacity-40 transition-colors">
-              {isScraping ? 'Scraping…' : 'Trigger Scrape'}
-            </button>
+      {/* Cards scroll area */}
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto snap-y snap-mandatory"
+      >
+        {loading ? (
+          <div className="flex items-center justify-center h-full text-outline text-xs font-mono">Loading…</div>
+        ) : filtered.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-outline text-xs font-mono">No items</div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-0 h-full">
+            {filtered.map((item, idx) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                isActive={idx === activeIndex}
+                onHide={handleHide}
+              />
+            ))}
           </div>
         )}
-        {filtered.map((item, index) => (
-          <div key={item.id} className="h-full w-full snap-start overflow-hidden">
-            <ItemCard
-              item={item}
-              isActive={index === activeIndex}
-              onHide={handleHide}
-            />
-          </div>
-        ))}
       </div>
     </div>
   );
