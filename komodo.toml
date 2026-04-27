@@ -105,21 +105,6 @@ image_registry = [
 
 # --- MAGNET_BRIDGE ---
 [[build]]
-name = "servertoolpython-magnet-bridge-dev"
-[build.config]
-builder = "docker-builder"
-repo = "EugeneKallis/ServerToolPython"
-branch = "develop"
-build_path = "magnet_bridge"
-dockerfile_path = "Dockerfile"
-image_name = "servertoolpython-magnet-bridge"
-image_tag = "dev"
-include_latest_tag = false
-image_registry = [
-  { domain = "docker.io", account = "eugenekallis" }
-]
-
-[[build]]
 name = "servertoolpython-magnet-bridge-prod"
 [build.config]
 builder = "docker-builder"
@@ -199,8 +184,7 @@ name = "Build All Dev"
 executions = [
     { execution.type = "RunBuild", execution.params.build = "servertoolpython-backend-dev" },
     { execution.type = "RunBuild", execution.params.build = "servertoolpython-frontend-dev" },
-    { execution.type = "RunBuild", execution.params.build = "servertoolpython-agent-dev" },
-    { execution.type = "RunBuild", execution.params.build = "servertoolpython-magnet-bridge-dev" }
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-agent-dev" }
 ]
 
 # Stage 3: deploy the dev stack with the new images
