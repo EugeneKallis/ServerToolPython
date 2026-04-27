@@ -32,10 +32,11 @@ function ItemCard({ item, isActive, onHide }: {
   const setState = (fileId: number, s: BridgeStateValue) =>
     setBridgeStates(prev => ({ ...prev, [fileId]: s }));
 
-  const images = item.image_url ? item.image_url.split(',') : [];
+  const images = item.image_url ? item.image_url.split(',').map(s => s.trim()).filter(Boolean) : [];
   const mainImage = images[0] ?? null;
   const tags = item.tags ? item.tags.split(',').filter(Boolean) : [];
   const nonProjectjavMagnet = item.source === 'pornrips' ? (item.torrent_link ?? '') : item.magnet_link;
+  const showSideBySide = (item.source === 'pornrips' || item.source === 'pornorips') && images.length >= 2;
 
   const sendToBridge = useCallback(async (magnetLink: string, fileId: number, downloadUncached: boolean) => {
     if (!magnetLink || getState(fileId) === 'loading') return;
@@ -86,7 +87,7 @@ function ItemCard({ item, isActive, onHide }: {
     <div className={`h-full w-full min-w-0 flex flex-col bg-surface-container border-b border-outline-variant overflow-hidden ${item.is_downloaded ? 'opacity-50' : ''}`}>
       {/* Image(s) */}
       <div className="flex-1 min-h-0 bg-black overflow-hidden relative flex">
-        {item.source === 'pornrips' && images.length >= 2 ? (
+        {showSideBySide ? (
           <>
             <button
               className="flex-1 min-w-0 cursor-zoom-in relative"
