@@ -101,10 +101,10 @@ function ItemCard({ item, isActive, onHide }: {
         e.preventDefault();
         if (isProjectjav && best) {
           if (getState(best.id) === 'loading' || getState(best.id) === 'done') return;
-          sendToBridge(best.magnet_link, best.id, false);
+          sendToBridge(best.magnet_link, best.id, true);
         } else if (!isProjectjav && nonProjectjavMagnet) {
           if (getState(0) === 'loading' || getState(0) === 'done') return;
-          sendToBridge(nonProjectjavMagnet, 0, false);
+          sendToBridge(nonProjectjavMagnet, 0, true);
         }
       } else if (e.key === 'h' || e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
@@ -121,9 +121,39 @@ function ItemCard({ item, isActive, onHide }: {
 
   return (
     <div className={`h-full w-full min-w-0 flex flex-col bg-surface-container border-b border-outline-variant overflow-hidden transition-opacity ${item.is_downloaded ? 'opacity-50' : ''}`}>
-      {/* Image */}
-      <div className="flex-1 min-h-0 bg-black overflow-hidden relative">
-        {mainImage ? (
+      {/* Image(s) */}
+      <div className="flex-1 min-h-0 bg-black overflow-hidden relative flex">
+        {item.source === 'pornrips' && images.length >= 2 ? (
+          <>
+            <button
+              className="flex-1 min-w-0 cursor-zoom-in relative"
+              onClick={() => window.open(images[0], '_blank', 'noopener,noreferrer')}
+              tabIndex={-1}
+            >
+              <img
+                src={images[0]}
+                alt={item.title}
+                className="absolute inset-0 w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+                onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+              />
+            </button>
+            <div className="w-px bg-outline-variant shrink-0" />
+            <button
+              className="flex-1 min-w-0 cursor-zoom-in relative"
+              onClick={() => window.open(images[1], '_blank', 'noopener,noreferrer')}
+              tabIndex={-1}
+            >
+              <img
+                src={images[1]}
+                alt={item.title}
+                className="absolute inset-0 w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+                onError={e => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+              />
+            </button>
+          </>
+        ) : mainImage ? (
           <button
             className="absolute inset-0 cursor-zoom-in"
             onClick={() => window.open(mainImage, '_blank', 'noopener,noreferrer')}
@@ -175,22 +205,13 @@ function ItemCard({ item, isActive, onHide }: {
                     <span className="text-outline shrink-0">L:{file.leechers ?? 0}</span>
                     <div className="flex items-center gap-1.5 ml-auto">
                       <button
-                        onClick={() => sendToBridge(file.magnet_link, file.id, false)}
+                        onClick={() => sendToBridge(file.magnet_link, file.id, true)}
                         disabled={fs === 'loading' || fs === 'done'}
-                        title="Download (cached)"
+                        title="Download"
                         className="flex items-center gap-1 text-[10px] font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-2 py-1 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Download size={12} className="shrink-0" />
                         <span>{stateLabel(fs, '')}</span>
-                      </button>
-                      <button
-                        onClick={() => sendToBridge(file.magnet_link, file.id, true)}
-                        disabled={fs === 'loading' || fs === 'done'}
-                        title="Download (force uncached)"
-                        className="flex items-center gap-1 text-[10px] font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-2 py-1 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Download size={12} className="shrink-0" />
-                        <span>-C</span>
                       </button>
                     </div>
                   </div>
@@ -223,31 +244,20 @@ function ItemCard({ item, isActive, onHide }: {
               {nonProjectjavMagnet && (() => {
                 const fs = getState(0);
                 return (
-                  <>
-                    <button
-                      onClick={() => sendToBridge(nonProjectjavMagnet, 0, false)}
-                      disabled={fs === 'loading' || fs === 'done'}
-                      title="Download (cached)"
-                      className="flex items-center gap-1.5 text-xs font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Download size={14} className="shrink-0" />
-                      <span className="hidden sm:inline text-[10px]">
-                        {stateLabel(fs, 'Download')}
-                      </span>
-                      <span className="sm:hidden text-[10px]">
-                        {stateLabel(fs, '')}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => sendToBridge(nonProjectjavMagnet, 0, true)}
-                      disabled={fs === 'loading' || fs === 'done'}
-                      title="Download (force uncached)"
-                      className="flex items-center gap-1.5 text-xs font-mono text-on-surface-variant hover:text-on-surface border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <Download size={14} className="shrink-0" />
-                      <span className="text-[10px]">-C</span>
-                    </button>
-                  </>
+                  <button
+                    onClick={() => sendToBridge(nonProjectjavMagnet, 0, true)}
+                    disabled={fs === 'loading' || fs === 'done'}
+                    title="Download"
+                    className="flex items-center gap-1.5 text-xs font-mono text-primary-fixed-dim hover:text-primary-fixed border border-outline-variant px-3 py-2 sm:py-1.5 hover:bg-surface-container-high transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Download size={14} className="shrink-0" />
+                    <span className="hidden sm:inline text-[10px]">
+                      {stateLabel(fs, 'Download')}
+                    </span>
+                    <span className="sm:hidden text-[10px]">
+                      {stateLabel(fs, '')}
+                    </span>
+                  </button>
                 );
               })()}
               <button

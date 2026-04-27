@@ -203,7 +203,7 @@ Used by the frontend `ChatTerminal` component for LLM streaming. The backend exp
 
 **Storage:** `ArrInstance` table (url, api_key, type, enabled)
 
-API keys stored plaintext in PostgreSQL and broadcast in plaintext via Redis. The `arr_searcher` microservice receives the config and makes HTTP calls to Radarr/Sonarr using these credentials.
+API keys stored plaintext in PostgreSQL and broadcast in plaintext via Redis. N8n receives the config via webhook and makes HTTP calls to Radarr/Sonarr.
 
 ### Decypharr (Debrid)
 
@@ -213,9 +213,9 @@ Used by Magnet Bridge for torrent resolution and debrid download handling. Not c
 
 ### Magnet Bridge
 
-**Env:** `BRIDGE_URL` (default: `https://magnetbridge.ekserver.com/api`)
+**Env:** `MAGNET_BRIDGE_URL` (default: `http://magnet-bridge:8081`)
 
-Backend proxies scraper bridge requests to `BRIDGE_URL/special/add`. Payload:
+Backend proxies scraper bridge requests to `{MAGNET_BRIDGE_URL}/api/{MANAGED_CATEGORY}/add`. Payload:
 
 ```json
 {

@@ -125,17 +125,7 @@ def test_delete_macro(client):
 
 ## CI Integration
 
-Tests are **not run in the Woodpecker CI pipeline** — only Docker builds occur. Tests are run manually before pushing.
-
-To add to CI, insert a pytest step before the build steps in `.woodpecker/dev-deploy.yml`:
-```yaml
-- name: test
-  image: python:3.11-slim
-  commands:
-    - cd backend && pip install -r requirements.txt && pytest tests/ -v
-```
-
----
+Tests are run via `make test` locally. CI runs Docker builds only — tests must pass before pushing.
 
 ## Coverage Estimate
 
@@ -152,5 +142,4 @@ To add to CI, insert a pytest step before the build steps in `.woodpecker/dev-de
 
 1. Test the `/execute` endpoint with a mocked Redis client
 2. Add WebSocket test fixtures (FastAPI supports `TestClient` WebSocket connections)
-3. Add a pytest step to the Woodpecker CI pipeline
-4. Add Jest/Vitest for frontend components
+3. Add Jest/Vitest for frontend components

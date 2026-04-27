@@ -107,19 +107,7 @@ Macro → ScriptRun
 
 ## CI/CD
 
-Woodpecker CI pipelines are in `.woodpecker/`. Dev and prod deployments are separate pipelines that build Docker images and deploy via Helm to Kubernetes.
-
-### Woodpecker Build Caching
-
-All image builds use `plugins/docker` with `daemon_off: true` to connect to the host Docker daemon via socket instead of running Docker-in-Docker. This gives access to the persistent host layer cache and cuts build times significantly (frontend ~1 min faster).
-
-Required Woodpecker agent config:
-
-- Volume: `/var/run/docker.sock:/var/run/docker.sock`
-- Env: `WOODPECKER_BACKEND_DOCKER_VOLUMES=/var/run/docker.sock:/var/run/docker.sock`
-- Env: `WOODPECKER_PLUGINS_PRIVILEGED=plugins/docker`
-
-If build times regress, verify these are set and the agent has been restarted.
+Komodo manages build and deploy pipelines. Config is in `komodo.toml`.
 
 ## Playwright / Browser Testing
 
@@ -314,8 +302,8 @@ ServerToolPython is a full-stack web application for managing, executing, and mo
 - **Base Endpoints**: 
 - **Used By**: Arr Searcher service for missing content detection and search triggering
 ### Magnet Bridge External Service
-- **URL**: https://magnetbridge.ekserver.com/api
-- **Environment Variable**: BRIDGE_URL
+- **URL**: http://magnet-bridge:8081/api
+- **Environment Variable**: MAGNET_BRIDGE_URL
 - **Used By**: Frontend scraper page for bridge operations
 ## Port Mapping (docker-compose.yml)
 | Service | Container Port | Host Port | Purpose |
@@ -463,15 +451,14 @@ ServerToolPython is a full-stack web application for managing, executing, and mo
 - Makefile targets: `make dev`, `make run`, `make test`, `make build-all`, `make push-all`
 - Docker images tagged: `eugenekallis/servertoolpython-{service}:{VERSION}`
 - Build command: `docker build --platform linux/amd64 -t IMAGE:TAG`
-### CI/CD Pipeline (Woodpecker)
+### CI/CD Pipeline (Komodo)
 - **Trigger**: On push to `develop` branch or manual trigger
-- **Steps**: Build and push each service separately (backend, frontend, agent, scraper, arr-searcher, magnet-bridge)
-- **Images**: Use `plugins/docker` with `daemon_off: true` for host socket mounting
-- **Secrets**: Docker credentials from Woodpecker secret store
+- **Steps**: Build and push each service separately (backend, frontend, agent, magnet-bridge)
+- **Images**: Use `docker-builder` with host socket mounting
+- **Secrets**: Docker credentials from Komodo secret store
 ### Kubernetes Deployment
 - Helm charts in `../kubernetes-cluster/charts/servertool-python`
 - Deploy command: `make helm-deploy`
-- Separate dev and prod deploy pipelines in `.woodpecker/`
 ## Git Workflow
 ### Branch Conventions
 - **Main branch**: `main` — production code only
@@ -493,7 +480,6 @@ ServerToolPython is a full-stack web application for managing, executing, and mo
 ### Core Services
 ```
 - Scraper: Drains scraper_results queue, persists to DB
-- Arr-Searcher: Integrates with media management APIs
 - Magnet-Bridge: Bridges torrent/magnet functionalities
 ```
 ### Deployment Modes
@@ -522,7 +508,7 @@ ServerToolPython is a full-stack web application for managing, executing, and mo
 |---------|-----------|-----------|--------------|---------|
 | `agent_commands` | Backend (macros.py, scheduler) | Agent | JSON command object | Send commands to execute |
 | `agent_responses` | Agent | Backend (run_log_listener) | JSON status + output | Stream execution results |
-| `arr_config_requests` | Microservices (arr_searcher, magnet_bridge) | Backend (arr_config_listener) | Trigger | Request Arr config broadcast |
+| `arr_config_requests` | Microservices (magnet_bridge) | Backend (arr_config_listener) | Trigger | Request Arr config broadcast |
 | `arr_config_updates` | Backend | Microservices | JSON Arr instances | Share config updates |
 | `scraper_results` | Scraper (LPUSH to list) | Backend (BRPOP from list) | JSON items | Persist scraped content |
 ### Redis Key Patterns
@@ -581,8 +567,8 @@ ServerToolPython is a full-stack web application for managing, executing, and mo
 - Redis: 1Gi PVC with AOF persistence enabled
 - Frontend ingress at `dev.servertool.cluster.lan` → backend:8080
 - Magnet-Bridge ingress at `dev.magnetbridge.cluster.lan` → magnet-bridge:8081
-### CI/CD Pipeline (Woodpecker)
-- Similar process but targets prod values/image tags
+### CI/CD Pipeline (Komodo)
+- Build and push each service separately (backend, frontend, agent, magnet-bridge)
 ## 7. Technology Stack
 ### Backend
 - **Framework**: FastAPI (async Python web framework)
@@ -604,12 +590,12 @@ ServerToolPython is a full-stack web application for managing, executing, and mo
 - **Containerization**: Docker
 - **Orchestration**: Kubernetes (k3s on premise)
 - **Package Manager**: Helm
-- **CI/CD**: Woodpecker CI (GitHub-based)
+- **CI/CD**: Komodo
 - **Container Registry**: Docker Hub (eugenekallis/)
 ## 8. Security & Scaling Considerations
 ### Security
 - **Command Injection Prevention**: Arguments are shell-quoted via `shlex.quote()`
-- **Secret Management**: Sensitive env vars (DB password, API keys) via Kubernetes Secrets / Woodpecker Secrets
+- **Secret Management**: Sensitive env vars (DB password, API keys) via Kubernetes Secrets / Komodo Secrets
 - **WebSocket**: Same-origin policy; frontend and backend on same origin
 - **Database**: PostgreSQL with strong passwords in production
 ### Scaling Patterns

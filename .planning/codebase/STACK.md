@@ -65,26 +65,10 @@
 **Location:** `scraper/`
 **Runtime:** Python 3.11
 **Dependencies:**
-- requests==2.32.3
-- cloudscraper==1.2.71
-- beautifulsoup4==4.12.3
-- lxml==5.3.0
-- redis==5.2.1
-
-**Entry Point:** `python -m app.main`
-**Port:** Not exposed
-**Key Function:** Scrapes content from multiple sources (141jav, projectjav, pornrips), publishes results to Redis (`scraper_results` queue)
-
-### Arr Searcher Service (Python)
-**Location:** `arr_searcher/`
-**Runtime:** Python 3.11
-**Dependencies:**
 - redis>=5.0.0
 - requests
 
 **Entry Point:** `python app/main.py`
-**Port:** Not exposed
-**Key Function:** Searches Arr instances (Radarr/Sonarr) for missing content, triggers searches via HTTP API calls to configured Arr instances
 
 ### Magnet Bridge Service (Python)
 **Location:** `magnet_bridge/`
@@ -229,8 +213,8 @@ OLLAMA_HOST=http://localhost:11434
 - **Used By**: Arr Searcher service for missing content detection and search triggering
 
 ### Magnet Bridge External Service
-- **URL**: https://magnetbridge.ekserver.com/api
-- **Environment Variable**: BRIDGE_URL
+- **URL**: http://magnet-bridge:8081/api
+- **Environment Variable**: MAGNET_BRIDGE_URL
 - **Used By**: Frontend scraper page for bridge operations
 
 ## Port Mapping (docker-compose.yml)

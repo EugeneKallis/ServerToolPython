@@ -118,8 +118,8 @@ class ScrapedItem(Base):
     image_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     magnet_link: Mapped[str] = mapped_column(String, unique=True, index=True)
     torrent_link: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    tags: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # comma-separated
-    source: Mapped[str] = mapped_column(String, index=True)  # "141jav" | "projectjav" | "pornrips"
+    tags: Mapped[Optional[str]] = mapped_column(String, nullable=True)  # comma-separated for images, or single image
+    source: Mapped[str] = mapped_column(String, index=True)
     is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
     is_downloaded: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

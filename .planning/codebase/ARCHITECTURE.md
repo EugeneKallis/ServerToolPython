@@ -178,7 +178,7 @@ Frontend
 |---------|-----------|-----------|--------------|---------|
 | `agent_commands` | Backend (macros.py, scheduler) | Agent | JSON command object | Send commands to execute |
 | `agent_responses` | Agent | Backend (run_log_listener) | JSON status + output | Stream execution results |
-| `arr_config_requests` | Microservices (arr_searcher, magnet_bridge) | Backend (arr_config_listener) | Trigger | Request Arr config broadcast |
+| `arr_config_requests` | Microservices (magnet_bridge) | Backend (arr_config_listener) | Trigger | Request Arr config broadcast |
 | `arr_config_updates` | Backend | Microservices | JSON Arr instances | Share config updates |
 | `scraper_results` | Scraper (LPUSH to list) | Backend (BRPOP from list) | JSON items | Persist scraped content |
 
@@ -355,11 +355,7 @@ Services:
   - scraper
     - No exposed port
     - Depends on: redis
-  
-  - arr_searcher
-    - No exposed port
-    - Depends on: redis
-  
+
   - magnet_bridge
     - Port: 8081 (optional external bridge)
     - Environment: DECYPHARR_URL, TORRENT_DEST_DIR
@@ -440,23 +436,6 @@ global:
 - Frontend ingress at `dev.servertool.cluster.lan` → backend:8080
 - Magnet-Bridge ingress at `dev.magnetbridge.cluster.lan` → magnet-bridge:8081
 
-### CI/CD Pipeline (Woodpecker)
-
-**Dev Branch Deploy (.woodpecker/dev-deploy.yml):**
-
-1. **Build Step** (parallel)
-   - Build 6 Docker images (frontend, backend, agent, scraper, arr-searcher, magnet-bridge)
-   - Tag with `dev-{COMMIT_SHA:0:8}`
-   - Push to Docker Hub (eugenekallis/servertoolpython-*)
-
-2. **Deploy Step**
-   - Clone kubernetes-cluster repo via SSH
-   - Update values-dev.yaml with new image tag via yq
-   - Commit and push to main branch (triggers ArgoCD or manual Helm apply)
-
-**Prod Branch Deploy (.woodpecker/prod-deploy.yml):**
-- Similar process but targets prod values/image tags
-
 ---
 
 ## 7. Technology Stack
@@ -483,7 +462,7 @@ global:
 - **Containerization**: Docker
 - **Orchestration**: Kubernetes (k3s on premise)
 - **Package Manager**: Helm
-- **CI/CD**: Woodpecker CI (GitHub-based)
+- **CI/CD**: Komodo
 - **Container Registry**: Docker Hub (eugenekallis/)
 
 ---
@@ -492,7 +471,7 @@ global:
 
 ### Security
 - **Command Injection Prevention**: Arguments are shell-quoted via `shlex.quote()`
-- **Secret Management**: Sensitive env vars (DB password, API keys) via Kubernetes Secrets / Woodpecker Secrets
+- **Secret Management**: Sensitive env vars (DB password, API keys) via Kubernetes Secrets / Komodo Secrets
 - **WebSocket**: Same-origin policy; frontend and backend on same origin
 - **Database**: PostgreSQL with strong passwords in production
 

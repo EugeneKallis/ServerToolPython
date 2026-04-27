@@ -57,46 +57,15 @@ services:
     # depends_on:
     #   - redis
 
-  # scraper:
-  #   build:
-  #     context: ./scraper
-  #     dockerfile: Dockerfile.dev
-  #   volumes:
-  #     - ./scraper:/app
-  #   environment:
-  #     - REDIS_URL=${REDIS_URL}
+# scraper:
+#     build:
+#       context: ./scraper
+#       dockerfile: Dockerfile.dev
+#     volumes:
+#       - ./scraper:/app
+#     environment:
+#       - REDIS_URL=${REDIS_URL}
 
-
-  # arr_searcher:
-  #   build:
-  #     context: ./arr_searcher
-  #     dockerfile: Dockerfile.dev
-  #   volumes:
-  #     - ./arr_searcher:/app
-  #   environment:
-  #     - REDIS_URL=${REDIS_URL}
-  #   # depends_on:
-  #   #   - redis
-
-  # magnet_bridge:
-  #   build:
-  #     context: ./magnet_bridge
-  #     dockerfile: Dockerfile.dev
-  #   volumes:
-  #     - ./magnet_bridge:/app
-  #     # - /mnt:/mnt:rshared
-  #   environment:
-  #     - DECYPHARR_URL=${DECYPHARR_URL:-http://192.168.1.99:8282}
-  #     - TORRENT_DEST_DIR=${TORRENT_DEST_DIR:-/mnt/debrid/media}
-  #     - MAGNET_BRIDGE_PORT=8081
-  #   ports:
-  #     - "8081:8081"
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "curl -f http://localhost:8081/ || exit 1"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 10s
 
 volumes:
   postgres_data:

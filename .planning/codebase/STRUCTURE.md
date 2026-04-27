@@ -5,9 +5,6 @@
 ```
 ServerToolPython/
 ├── .planning/codebase/        # Codebase map (this directory)
-├── .woodpecker/               # CI/CD pipeline definitions
-│   ├── dev-deploy.yml         # Dev branch: build + deploy
-│   └── prod-deploy.yml        # Prod branch: build + deploy
 ├── docker-compose.yml         # All services for local dev
 ├── Makefile                   # Top-level build/deploy targets
 ├── CLAUDE.md                  # Project instructions for Claude Code
@@ -15,7 +12,6 @@ ServerToolPython/
 ├── frontend/
 ├── agent/
 ├── scraper/
-├── arr_searcher/
 └── magnet_bridge/
 ```
 
@@ -146,10 +142,6 @@ agent/
 
 Async scraping loops for multiple sources. Pushes results to Redis list `scraper_results`. Status tracked in `scraper:status:{source}` keys.
 
-## Arr-Searcher (`arr_searcher/`)
-
-Radarr/Sonarr API integration. Listens for `arr_config_updates` on Redis.
-
 ## Magnet-Bridge (`magnet_bridge/`)
 
 HTTP API service (port 8081) bridging magnet links to debrid services (Decypharr).
@@ -178,17 +170,6 @@ servertool-python/               # Umbrella chart
 └── magnet-bridge/
     └── templates/ingress.yaml   # dev.magnetbridge.cluster.lan
 ```
-
----
-
-## CI/CD (`.woodpecker/`)
-
-### dev-deploy.yml flow:
-1. Build 6 Docker images in parallel (tag: `dev-{COMMIT_SHA:0:8}`)
-2. Push to Docker Hub (`eugenekallis/servertoolpython-*`)
-3. Clone `kubernetes-cluster` repo, update `values-dev.yaml` tag via `yq`, commit + push
-
-Triggered on push to `develop` branch.
 
 ---
 

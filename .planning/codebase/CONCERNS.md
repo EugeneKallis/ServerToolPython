@@ -391,13 +391,7 @@ def get_macros(session: Session = Depends(get_session)):
 
 ---
 
-### 2. Arr-Searcher Task Queue Pattern
-**File:** `/arr_searcher/app/main.py`  
-**Issue:** Uses `LPUSH` to `arr_commands` but it's not documented or consistent with other services.
-
----
-
-### 3. Heterogeneous Error Handling
+### 2. Heterogeneous Error Handling
 - Agent uses print + silent failures
 - Backend uses HTTPException + print
 - Scraper uses print in a loop

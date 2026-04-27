@@ -344,16 +344,15 @@ Services are containerized with:
 - Docker images tagged: `eugenekallis/servertoolpython-{service}:{VERSION}`
 - Build command: `docker build --platform linux/amd64 -t IMAGE:TAG`
 
-### CI/CD Pipeline (Woodpecker)
+### CI/CD Pipeline (Komodo)
 - **Trigger**: On push to `develop` branch or manual trigger
-- **Steps**: Build and push each service separately (backend, frontend, agent, scraper, arr-searcher, magnet-bridge)
-- **Images**: Use `plugins/docker` with `daemon_off: true` for host socket mounting
-- **Secrets**: Docker credentials from Woodpecker secret store
+- **Steps**: Build and push each service separately (backend, frontend, agent, magnet-bridge)
+- **Images**: Use docker-builder with host socket mounting
+- **Secrets**: Docker credentials from Komodo secret store
 
 ### Kubernetes Deployment
 - Helm charts in `../kubernetes-cluster/charts/servertool-python`
 - Deploy command: `make helm-deploy`
-- Separate dev and prod deploy pipelines in `.woodpecker/`
 
 ---
 
