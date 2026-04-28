@@ -44,6 +44,49 @@ def _create_listener_redis():
     return aioredis.from_url(redis_url, socket_connect_timeout=5)
 
 
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: list[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in list(self.active_connections):
+            try:
+                await connection.send_text(message)
+            except Exception:
+                self.disconnect(connection)
+
+manager = ConnectionManager()
+
+
+async def terminal_broadcast_listener():
+    """
+    Listens to agent_responses and broadcasts to all connected WebSockets.
+    """
+    while True:
+        try:
+            r = _create_listener_redis()
+            pubsub = r.pubsub()
+            await pubsub.subscribe("agent_responses")
+            logger.info("Terminal broadcast listener subscribed to agent_responses")
+
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    await manager.broadcast(message["data"].decode("utf-8"))
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"[terminal_broadcast_listener] Connection error: {e}. Reconnecting in 5s...")
+            await asyncio.sleep(5)
+
+
 # ── Run-log listener ──────────────────────────────────────────────────────────
 # Tracks in-flight runs keyed by run_id (UUID from agent)
 _active_output: dict[str, list] = {}  # run_id → list of output lines
@@ -58,97 +101,104 @@ async def run_log_listener():
     from sqlalchemy import select
     from sqlalchemy.orm import Session
 
-    r = _create_listener_redis()
-    pubsub = r.pubsub()
-    await pubsub.subscribe("agent_responses")
-    logger.info("Run-log listener subscribed to agent_responses")
-
-    async for message in pubsub.listen():
-        if message["type"] != "message":
-            continue
+    while True:
         try:
-            data = json.loads(message["data"])
-            status = data.get("status")
-            run_id = data.get("run_id")
-            command = data.get("command", "")
-            macro_name = data.get("macro_name", command[:80])
+            r = _create_listener_redis()
+            pubsub = r.pubsub()
+            await pubsub.subscribe("agent_responses")
+            logger.info("Run-log listener subscribed to agent_responses")
 
-            if not run_id:
-                continue
+            async for message in pubsub.listen():
+                if message["type"] != "message":
+                    continue
+                try:
+                    data = json.loads(message["data"])
+                    status = data.get("status")
+                    run_id = data.get("run_id")
+                    command = data.get("command", "")
+                    macro_name = data.get("macro_name", command[:80])
 
-            if status == "started":
-                _active_output[run_id] = []
-                with Session(engine) as db:
-                    # check if this run_id already exists (consolidated macro run)
-                    run = db.execute(
-                        select(ScriptRun).where(ScriptRun.run_id == run_id)
-                    ).scalar()
-                    if not run:
-                        started_at = datetime.now(timezone.utc).replace(tzinfo=None)
-                        _active_started[run_id] = started_at
-                        run = ScriptRun(
-                            run_id=run_id,
-                            macro_name=macro_name or command[:80],
-                            started_at=started_at,
-                            success=None,
+                    if not run_id:
+                        continue
+
+                    if status == "started":
+                        _active_output[run_id] = []
+                        with Session(engine) as db:
+                            # check if this run_id already exists (consolidated macro run)
+                            run = db.execute(
+                                select(ScriptRun).where(ScriptRun.run_id == run_id)
+                            ).scalar()
+                            if not run:
+                                started_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                                _active_started[run_id] = started_at
+                                run = ScriptRun(
+                                    run_id=run_id,
+                                    macro_name=macro_name or command[:80],
+                                    started_at=started_at,
+                                    success=None,
+                                )
+                                db.add(run)
+                                db.commit()
+                            else:
+                                # Append command header to existing run
+                                run.output = (
+                                    run.output or ""
+                                ) + f"\n\n--- Executing: {command} ---\n"
+                                db.commit()
+
+                    elif status == "streaming":
+                        line = data.get("message") or data.get("error", "")
+                        if run_id in _active_output:
+                            _active_output[run_id].append(line)
+
+                    elif status in ("completed", "error", "reset"):
+                        output_lines = _active_output.pop(run_id, [])
+                        started_at = _active_started.get(
+                            run_id
+                        )  # Don't pop yet as more commands might follow
+                        is_last = data.get("is_last", True)
+
+                        finished_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                        duration = (
+                            (finished_at - started_at).total_seconds() if started_at else None
                         )
-                        db.add(run)
-                        db.commit()
-                    else:
-                        # Append command header to existing run
-                        run.output = (
-                            run.output or ""
-                        ) + f"\n\n--- Executing: {command} ---\n"
-                        db.commit()
+                        success = status == "completed"
 
-            elif status == "streaming":
-                line = data.get("message") or data.get("error", "")
-                if run_id in _active_output:
-                    _active_output[run_id].append(line)
+                        with Session(engine) as db:
+                            run = db.execute(
+                                select(ScriptRun).where(ScriptRun.run_id == run_id)
+                            ).scalar()
+                            if run:
+                                # Update output (accumulate)
+                                new_output = (run.output or "") + "\n".join(output_lines)
+                                run.output = new_output
 
-            elif status in ("completed", "error", "reset"):
-                output_lines = _active_output.pop(run_id, [])
-                started_at = _active_started.get(
-                    run_id
-                )  # Don't pop yet as more commands might follow
-                is_last = data.get("is_last", True)
+                                # Update status
+                                exit_code = data.get("exit_code", 0)
 
-                finished_at = datetime.now(timezone.utc).replace(tzinfo=None)
-                duration = (
-                    (finished_at - started_at).total_seconds() if started_at else None
-                )
-                success = status == "completed"
+                                if status == "error" or exit_code != 0:
+                                    run.success = False
+                                elif status == "completed" and is_last:
+                                    # Only set to True if no previous command in this macro failed
+                                    if run.success is not False:
+                                        run.success = True
 
-                with Session(engine) as db:
-                    run = db.execute(
-                        select(ScriptRun).where(ScriptRun.run_id == run_id)
-                    ).scalar()
-                    if run:
-                        # Update output (accumulate)
-                        new_output = (run.output or "") + "\n".join(output_lines)
-                        run.output = new_output
+                                run.finished_at = finished_at
+                                if started_at:
+                                    run.duration_seconds = round(duration, 2)
 
-                        # Update status
-                        exit_code = data.get("exit_code", 0)
+                                db.commit()
 
-                        if status == "error" or exit_code != 0:
-                            run.success = False
-                        elif status == "completed" and is_last:
-                            # Only set to True if no previous command in this macro failed
-                            if run.success is not False:
-                                run.success = True
+                        if is_last:
+                            _active_started.pop(run_id, None)
 
-                        run.finished_at = finished_at
-                        if started_at:
-                            run.duration_seconds = round(duration, 2)
-
-                        db.commit()
-
-                if is_last:
-                    _active_started.pop(run_id, None)
-
+                except Exception as e:
+                    logger.error(f"[run_log_listener] Error processing message: {e}")
+        except asyncio.CancelledError:
+            break
         except Exception as e:
-            logger.info(f"[run_log_listener] Error: {e}")
+            logger.error(f"[run_log_listener] Connection error: {e}. Reconnecting in 5s...")
+            await asyncio.sleep(5)
 
 
 # ── Arr Config listener ────────────────────────────────────────────────────────
@@ -162,19 +212,26 @@ async def arr_config_listener():
     from sqlalchemy.orm import Session
     from app.utils.arr_config import broadcast_arr_config
 
-    r = _create_listener_redis()
-    pubsub = r.pubsub()
-    await pubsub.subscribe("arr_config_requests")
-    logger.info("Arr config listener subscribed to arr_config_requests")
-
-    async for message in pubsub.listen():
-        if message["type"] != "message":
-            continue
+    while True:
         try:
-            with Session(engine) as db:
-                await broadcast_arr_config(r, db)
+            r = _create_listener_redis()
+            pubsub = r.pubsub()
+            await pubsub.subscribe("arr_config_requests")
+            logger.info("Arr config listener subscribed to arr_config_requests")
+
+            async for message in pubsub.listen():
+                if message["type"] != "message":
+                    continue
+                try:
+                    with Session(engine) as db:
+                        await broadcast_arr_config(r, db)
+                except Exception as e:
+                    logger.error(f"[arr_config_listener] Error broadcasting config: {e}")
+        except asyncio.CancelledError:
+            break
         except Exception as e:
-            logger.info(f"[arr_config_listener] Error broadcasting config: {e}")
+            logger.error(f"[arr_config_listener] Connection error: {e}. Reconnecting in 5s...")
+            await asyncio.sleep(5)
 
 
 # ── Scraper results listener ──────────────────────────────────────────────────
@@ -299,11 +356,15 @@ async def lifespan(app: FastAPI):
     # Start the scraper results listener
     scraper_task = asyncio.create_task(scraper_results_listener())
 
+    # Start the terminal broadcast listener
+    terminal_task = asyncio.create_task(terminal_broadcast_listener())
+
     yield
 
     listener_task.cancel()
     config_task.cancel()
     scraper_task.cancel()
+    terminal_task.cancel()
     shutdown_scheduler()
 
 
@@ -373,43 +434,12 @@ async def index(request: Request):
 
 @app.websocket("/ws/terminal")
 async def terminal_websocket(websocket: WebSocket):
-    await websocket.accept()
+    await manager.connect(websocket)
     logger.info("Client connected to terminal WebSocket")
-
-    import redis.asyncio as aioredis
-
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
-    r = aioredis.from_url(redis_url, socket_connect_timeout=10)
-
-    async def listen_to_responses():
-        while True:
-            try:
-                pubsub = r.pubsub()
-                await pubsub.subscribe("agent_responses")
-                async for message in pubsub.listen():
-                    if message["type"] == "message":
-                        await websocket.send_text(message["data"].decode("utf-8"))
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.info(f"Error in pubsub listener: {e}")
-                await asyncio.sleep(1)
-            finally:
-                try:
-                    await pubsub.unsubscribe("agent_responses")
-                except Exception:
-                    pass
-
-    listener_task = asyncio.create_task(listen_to_responses())
 
     try:
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
+        manager.disconnect(websocket)
         logger.info("Client disconnected from terminal WebSocket")
-    finally:
-        listener_task.cancel()
-        try:
-            await r.close()
-        except Exception:
-            pass

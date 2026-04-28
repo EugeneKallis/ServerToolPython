@@ -39,13 +39,12 @@ class TaskManager:
 task_manager = TaskManager()
 AGENT_ID = str(uuid.uuid4())
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+redis_client = redis.from_url(REDIS_URL, socket_connect_timeout=5)
 
 
 async def publish_response(data: dict):
     try:
-        r = redis.from_url(REDIS_URL, socket_connect_timeout=5)
-        await r.publish("agent_responses", json.dumps(data))
-        await r.aclose()
+        await redis_client.publish("agent_responses", json.dumps(data))
     except Exception as e:
         logger.info(f"Failed to publish response: {e}")
 
@@ -53,9 +52,7 @@ async def publish_response(data: dict):
 async def heartbeat():
     while True:
         try:
-            r = redis.from_url(REDIS_URL, socket_connect_timeout=3)
-            await r.setex(f"agent:heartbeat:{AGENT_ID}", 30, 1)
-            await r.aclose()
+            await redis_client.setex(f"agent:heartbeat:{AGENT_ID}", 30, 1)
         except asyncio.CancelledError:
             break
         except Exception:
@@ -157,6 +154,10 @@ async def execute_and_stream(
                 os.killpg(pgid, signal.SIGKILL)
             except:
                 pass
+            try:
+                await asyncio.wait_for(task_manager.current_process.wait(), timeout=2.0)
+            except:
+                pass
             task_manager.current_process = None
         raise
     except Exception as e:
@@ -199,8 +200,7 @@ async def command_worker():
 async def control_listener():
     while True:
         try:
-            r = redis.from_url(REDIS_URL, socket_connect_timeout=5)
-            pubsub = r.pubsub()
+            pubsub = redis_client.pubsub()
             await pubsub.subscribe("agent_control")
             logger.info("Subscribed to 'agent_control' channel.")
 
@@ -221,7 +221,10 @@ async def control_listener():
                             )
                     except Exception as e:
                         logger.info(f"Error processing control message: {e}")
-            await r.aclose()
+            try:
+                await pubsub.close()
+            except Exception:
+                pass
         except asyncio.CancelledError:
             break
         except redis.ConnectionError as e:
@@ -236,9 +239,7 @@ async def command_listener():
     logger.info("Command listener started")
     while True:
         try:
-            r = redis.from_url(REDIS_URL, socket_connect_timeout=5)
-            result = await r.brpop("agent_commands", timeout=5)
-            await r.aclose()
+            result = await redis_client.brpop("agent_commands", timeout=5)
 
             if result is None:
                 continue
