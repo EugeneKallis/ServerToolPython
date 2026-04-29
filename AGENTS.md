@@ -20,7 +20,6 @@ make migrate        # Apply Alembic migrations
 make migration MESSAGE="description"  # Create a new Alembic migration
 make build-all      # Build all Docker images
 make push-all       # Push all Docker images to registry
-make helm-deploy    # Deploy to Kubernetes via Helm
 ```
 
 ### Backend (standalone)
@@ -457,8 +456,7 @@ ServerToolPython is a full-stack web application for managing, executing, and mo
 - **Images**: Use `docker-builder` with host socket mounting
 - **Secrets**: Docker credentials from Komodo secret store
 ### Kubernetes Deployment
-- Helm charts in `../kubernetes-cluster/charts/servertool-python`
-- Deploy command: `make helm-deploy`
+- Deploy command: `make komodo-deploy` (or your current deployment command)
 ## Git Workflow
 ### Branch Conventions
 - **Main branch**: `main` — production code only
@@ -487,11 +485,7 @@ ServerToolPython is a full-stack web application for managing, executing, and mo
 - Volume mounts for hot-reloading (frontend/backend)
 - Database and Redis in same compose stack
 - Isolated network for inter-service communication
-- Helm umbrella chart at `/kubernetes-cluster/charts/servertool-python/`
-- Separate microservice sub-charts (backend, frontend, agent, infrastructure, scraper, arr-searcher, magnet-bridge)
-- PostgreSQL and Redis as separate Kubernetes StatefulSets/Deployments with PersistentVolumeClaims
-- Ingress for external access (frontend on port 443, magnet-bridge on dedicated ingress)
-- Pod anti-affinity for high availability
+- Komodo manages CI/CD pipelines (see `komodo.toml`)
 ## 2. Request/Response Flow: Frontend to Backend to Agent
 ### Flow 1: User Executes a Macro
 ```

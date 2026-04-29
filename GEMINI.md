@@ -20,7 +20,6 @@ make migrate        # Apply Alembic migrations
 make migration MESSAGE="description"  # Create a new Alembic migration
 make build-all      # Build all Docker images
 make push-all       # Push all Docker images to registry
-make helm-deploy    # Deploy to Kubernetes via Helm (charts in ../kubernetes-cluster)
 ```
 
 ### Backend (standalone)

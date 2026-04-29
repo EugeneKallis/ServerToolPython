@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, Download, EyeOff, Undo2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { RefreshCw, Download, EyeOff, Undo2, ChevronDown, ChevronRight } from 'lucide-react';
 
 const SOURCES = ['141jav', 'projectjav', 'pornrips'] as const;
 type Source = typeof SOURCES[number];
@@ -192,12 +192,11 @@ function ItemCard({ item, isActive, onHide }: {
 export default function ScraperPage() {
   const [source, setSource] = useState<Source>('141jav');
   const [items, setItems] = useState<ScrapedItem[]>([]);
-  const [status, setStatus] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [tagFilter, setTagFilter] = useState('');
   const [tagsOpen, setTagsOpen] = useState(false);
-  const [confirmRefresh, setConfirmRefresh] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isScraping, setIsScraping] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const fetchItems = useCallback(async () => {
@@ -207,17 +206,9 @@ export default function ScraperPage() {
     setLoading(false);
   }, [source]);
 
-  const fetchStatus = useCallback(async () => {
-    const res = await fetch('/api/scraper/status');
-    if (res.ok) setStatus(await res.json());
-  }, []);
-
   useEffect(() => {
     fetchItems();
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
-  }, [fetchItems, fetchStatus]);
+  }, [fetchItems]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -247,8 +238,9 @@ export default function ScraperPage() {
   }, []);
 
   const triggerScrape = async () => {
-    await fetch(`/api/scraper/trigger?source=${source}`, { method: 'POST' });
-    fetchStatus();
+    setIsScraping(true);
+    await fetch(`https://n8n.ekserver.com/webhook/bbf96bcb-f8e4-4f39-83d0-6123d8fc18ca?source=${source}`);
+    setTimeout(() => setIsScraping(false), 1000);
   };
 
   const handleHide = async (id: number) => {
@@ -259,13 +251,6 @@ export default function ScraperPage() {
   const handleUndoHide = async () => {
     await fetch(`/api/scraper/items/undo-hide?source=${source}`, { method: 'POST' });
     fetchItems();
-  };
-
-  const handleRefresh = async () => {
-    setConfirmRefresh(false);
-    await fetch(`/api/scraper/refresh?source=${source}`, { method: 'POST' });
-    setItems([]);
-    fetchStatus();
   };
 
   // Tag counts
@@ -283,8 +268,6 @@ export default function ScraperPage() {
   const filtered = tagFilter
     ? items.filter(i => (i.tags ?? '').split(',').includes(tagFilter))
     : items;
-
-  const isScraping = status[source] ?? false;
 
   return (
     <div className="flex flex-col h-full w-full max-w-full overflow-x-hidden bg-surface-dim text-on-surface">
@@ -305,23 +288,6 @@ export default function ScraperPage() {
             <span className="hidden sm:inline">Undo Hide</span>
           </button>
 
-          {!confirmRefresh ? (
-            <button
-              onClick={() => setConfirmRefresh(true)}
-              className="flex items-center gap-1.5 text-[10px] font-mono text-on-surface-variant hover:text-error border border-outline-variant hover:border-error/30 px-2.5 py-2 sm:py-1.5 hover:bg-error-container/10 transition-colors"
-              title="Refresh source"
-            >
-              <Trash2 size={13} />
-              <span className="hidden sm:inline">Refresh Source</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-error hidden sm:inline">Delete all &amp; rescrape?</span>
-              <button onClick={handleRefresh} className="text-[10px] font-mono bg-error-container text-on-error-container px-2.5 py-2 sm:py-1.5 hover:opacity-80 transition-opacity">Confirm</button>
-              <button onClick={() => setConfirmRefresh(false)} className="text-[10px] font-mono text-outline hover:text-on-surface px-2.5 py-2 sm:py-1.5 transition-colors">Cancel</button>
-            </div>
-          )}
-
           <button
             onClick={triggerScrape}
             disabled={isScraping}
@@ -329,7 +295,7 @@ export default function ScraperPage() {
             title="Scrape now"
           >
             <RefreshCw size={13} className={isScraping ? 'animate-spin' : ''} />
-            <span className="hidden sm:inline">{isScraping ? 'Scraping…' : 'Scrape Now'}</span>
+            <span className="hidden sm:inline">{isScraping ? '...' : 'Scrape Now'}</span>
           </button>
         </div>
 
@@ -346,7 +312,6 @@ export default function ScraperPage() {
               }`}
             >
               {s}
-              {status[s] && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-primary-fixed-dim animate-pulse align-middle" />}
             </button>
           ))}
         </div>
@@ -394,7 +359,7 @@ export default function ScraperPage() {
           <div className="h-full flex flex-col items-center justify-center gap-3 text-outline">
             <p className="text-xs font-mono">No items found.</p>
             <button onClick={triggerScrape} disabled={isScraping} className="text-xs font-mono text-primary-fixed-dim border border-outline-variant px-4 py-2.5 hover:bg-surface-container-high disabled:opacity-40 transition-colors">
-              {isScraping ? 'Scraping…' : 'Trigger Scrape'}
+              {isScraping ? '...' : 'Trigger Scrape'}
             </button>
           </div>
         )}

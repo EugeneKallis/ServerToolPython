@@ -2,7 +2,7 @@ import json
 import asyncio
 import os
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -234,95 +234,6 @@ async def arr_config_listener():
             await asyncio.sleep(5)
 
 
-# ── Scraper results listener ──────────────────────────────────────────────────
-
-
-async def scraper_results_listener():
-    """
-    Drains the scraper_results Redis list and persists scraped items to the DB.
-    The scraper LPUSHes batches; we BRPOP so messages survive backend restarts.
-    """
-    from sqlalchemy import select
-    from sqlalchemy.orm import Session
-    from .models import ScrapedItem
-
-    r = _create_listener_redis()
-    logger.info("Scraper results listener waiting on scraper_results queue")
-
-    while True:
-        try:
-            result = await r.brpop("scraper_results", timeout=0)
-            if not result:
-                continue
-            _, raw = result
-            data = json.loads(raw)
-            source = data.get("source", "unknown")
-            force = data.get("force", False)
-            items = data.get("items", [])
-
-            with Session(engine) as session:
-                # Cleanup old hidden items
-                cutoff = datetime.now(timezone.utc) - timedelta(days=20)
-                old = session.scalars(
-                    select(ScrapedItem).where(
-                        ScrapedItem.is_hidden == True,
-                        ScrapedItem.created_at < cutoff,
-                    )
-                ).all()
-                for item in old:
-                    session.delete(item)
-                if old:
-                    session.commit()
-                    logger.info(
-                        f"[scraper_results] Cleaned up {len(old)} old hidden items"
-                    )
-
-                new_count = 0
-                for item_data in items:
-                    identifier = item_data.get("page_url") or item_data.get(
-                        "magnet_link", ""
-                    )
-                    if not identifier:
-                        continue
-
-                    existing = session.scalars(
-                        select(ScrapedItem).where(ScrapedItem.magnet_link == identifier)
-                    ).first()
-
-                    if existing and not force:
-                        continue
-
-                    if not existing:
-                        title = (
-                            item_data.get("title", "")
-                            .replace('"', "")
-                            .replace("'", "")
-                            .strip()
-                        )
-                        tags_str = item_data.get("tags") or ""
-                        db_item = ScrapedItem(
-                            title=title,
-                            image_url=item_data.get("image_url") or None,
-                            magnet_link=identifier,
-                            torrent_link=item_data.get("torrent_link") or None,
-                            tags=tags_str or None,
-                            source=source,
-                        )
-                        session.add(db_item)
-
-                        try:
-                            session.flush()
-                            new_count += 1
-                        except Exception:
-                            session.rollback()
-
-                session.commit()
-                logger.info(f"[scraper_results] {source}: added {new_count} new items")
-
-        except Exception as e:
-            logger.info(f"[scraper_results_listener] Error: {e}")
-
-
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 
@@ -347,14 +258,22 @@ async def lifespan(app: FastAPI):
     logger.info(f"Managed Category:  {managed_category}")
     logger.info("-----------------------------")
 
+    # Cleanup orphaned scraper status keys
+    try:
+        r = _create_listener_redis()
+        keys = await r.keys("scraper:status:*")
+        if keys:
+            await r.delete(*keys)
+            logger.info(f"Cleaned up {len(keys)} orphaned scraper:status:* keys")
+        await r.aclose()
+    except Exception as e:
+        logger.warning(f"Failed to cleanup scraper:status:* keys: {e}")
+
     # Start the background run-log listener
     listener_task = asyncio.create_task(run_log_listener())
 
     # Start the arr config listener
     config_task = asyncio.create_task(arr_config_listener())
-
-    # Start the scraper results listener
-    scraper_task = asyncio.create_task(scraper_results_listener())
 
     # Start the terminal broadcast listener
     terminal_task = asyncio.create_task(terminal_broadcast_listener())
@@ -363,7 +282,6 @@ async def lifespan(app: FastAPI):
 
     listener_task.cancel()
     config_task.cancel()
-    scraper_task.cancel()
     terminal_task.cancel()
     shutdown_scheduler()
 

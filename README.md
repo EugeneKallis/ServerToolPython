@@ -42,16 +42,4 @@ docker-compose up --build
 - **Postgres Database**: Port `5432`
 - **Redis Broker**: Port `6379`
 
-## Deployment & CI/CD (Kubernetes + Helm)
 
-This project deploys to a Kubernetes cluster via a unified Helm chart using Komodo for CI/CD.
-
-### Helm Configuration
-All application microservices (Frontend, Backend, Agent, Redis, Postgres) are bundled into a single Helm Chart located in the `kubernetes-cluster` repository at `charts/servertool-python/`.
-Global parameters such as image variants and replica counts are defined centrally in `charts/servertool-python/values-dev.yaml` and `charts/servertool-python/values-prod.yaml`.
-
-You can use the built-in Makefile targets to interact with Helm locally:
-- `make helm-deploy` - Upgrades or installs the cluster.
-- `make helm-uninstall` - Tears down the deployment.
-- `make helm-template` - Renders the manifest templates locally for debugging.
-- `make helm-lint` - Lints the Helm configuration syntax.
