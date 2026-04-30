@@ -212,7 +212,8 @@ name = "Build All Prod"
 executions = [
     { execution.type = "RunBuild", execution.params.build = "servertoolpython-backend-prod" },
     { execution.type = "RunBuild", execution.params.build = "servertoolpython-frontend-prod" },
-    { execution.type = "RunBuild", execution.params.build = "servertoolpython-agent-prod" }
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-agent-prod" },
+    { execution.type = "RunBuild", execution.params.build = "servertoolpython-magnet-bridge-prod" }
 ]
 
 # Stage 3: deploy the prod stack with the new images
