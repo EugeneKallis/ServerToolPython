@@ -277,10 +277,12 @@ async def add_torrent(
                 raise HTTPException(status_code=resp.status_code, detail=f"Decypharr API error: {resp.text}")
 
             api_resp = resp.json()
-            if api_resp.get("errors"):
+            if isinstance(api_resp, dict) and api_resp.get("errors"):
                 error_msg = "\n".join(api_resp["errors"])
                 error_msg = re.sub(r'(URL )?magnet:\?.*?: ', '', error_msg)
                 raise HTTPException(status_code=400, detail=f"Decypharr API returned errors: {error_msg}")
+            elif isinstance(api_resp, list) and api_resp:
+                pass
 
             asyncio.create_task(log_success(arr, urls))
 
