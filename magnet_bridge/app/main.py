@@ -31,12 +31,14 @@ print("-----------------------------------")
 
 
 class Torrent(BaseModel):
-    id: str
+    info_hash: str
     category: str
     name: str
     state: str
-    hash: str
-    content_path: str
+    status: str
+    progress: float
+    content_path: Optional[str] = None
+    save_path: Optional[str] = None
 
 
 # Helper functions
@@ -52,9 +54,10 @@ async def get_torrent_name_by_hash(hash_code: str) -> Optional[str]:
         try:
             resp = await client.get(f"{DECYPHARR_URL}/api/torrents")
             if resp.status_code == 200:
-                torrents = resp.json()
+                data = resp.json()
+                torrents = data.get("torrents", [])
                 for t in torrents:
-                    if t.get("hash", "").lower() == hash_code.lower():
+                    if t.get("info_hash", "").lower() == hash_code.lower():
                         return t.get("name")
         except Exception as e:
             print(f"Error fetching torrent name for {hash_code}: {e}")
@@ -136,28 +139,30 @@ async def poll_torrents():
                     print(f"Error fetching torrents: {resp.status_code}")
                     continue
 
-                torrents = resp.json()
+                data = resp.json()
+                torrents = data.get("torrents", [])
                 for t_data in torrents:
                     t = Torrent(**t_data)
 
                     if t.category != MANAGED_CATEGORY:
                         continue
 
-                    if t.state != "pausedUP" or not t.content_path:
+                    if t.status != "downloaded" or (not t.content_path and not t.save_path):
                         continue
 
-                    real_path = await resolve_path(t.content_path)
+                    torrent_path = t.content_path or t.save_path
+                    real_path = await resolve_path(torrent_path)
                     if not real_path:
-                        if t.hash not in failed_torrents:
-                            print(f"Error locating content path for {t.name} ({t.content_path})")
-                            failed_torrents.add(t.hash)
+                        if t.info_hash not in failed_torrents:
+                            print(f"Error locating content path for {t.name} ({torrent_path})")
+                            failed_torrents.add(t.info_hash)
                         continue
 
-                    if t.hash in failed_torrents:
-                        failed_torrents.remove(t.hash)
+                    if t.info_hash in failed_torrents:
+                        failed_torrents.remove(t.info_hash)
                         print(f"Locating content path for {t.name} resolved: {real_path}")
 
-                    print(f"Processing completed {MANAGED_CATEGORY} torrent: {t.name} ({t.hash})")
+                    print(f"Processing completed {MANAGED_CATEGORY} torrent: {t.name} ({t.info_hash})")
 
                     # Cleanup small symlinks
                     await cleanup_small_symlinks(real_path, 75)
@@ -199,13 +204,13 @@ async def poll_torrents():
 
                     # Remove from UI
                     try:
-                        del_resp = await client.delete(f"{DECYPHARR_URL}/api/torrents/{MANAGED_CATEGORY}/{t.hash}")
+                        del_resp = await client.delete(f"{DECYPHARR_URL}/api/torrents/{MANAGED_CATEGORY}/{t.info_hash}")
                         if del_resp.status_code == 200:
-                            print(f"Removed {MANAGED_CATEGORY} torrent from UI: {t.hash}")
+                            print(f"Removed {MANAGED_CATEGORY} torrent from UI: {t.info_hash}")
                         else:
-                            print(f"Failed to remove torrent from UI: {t.hash} (Status: {del_resp.status_code})")
+                            print(f"Failed to remove torrent from UI: {t.info_hash} (Status: {del_resp.status_code})")
                     except Exception as e:
-                        print(f"Error sending DELETE request for {t.hash}: {e}")
+                        print(f"Error sending DELETE request for {t.info_hash}: {e}")
 
             except Exception as e:
                 print(f"Error in poll_torrents: {e}")
