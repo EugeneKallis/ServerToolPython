@@ -29,21 +29,10 @@ async def add_torrent(
             }.items()
         ]
 
-        files_data = None
-        if urls and urls.startswith("magnet:"):
+        if urls and (urls.startswith("magnet:") or urls.startswith("http")):
             multipart.append(("urls", (None, urls)))
-        elif urls and urls.startswith("http"):
-            try:
-                torrent_resp = await client.get(urls, timeout=30.0, follow_redirects=True)
-                if torrent_resp.status_code != 200:
-                    raise HTTPException(status_code=502, detail=f"Failed to fetch torrent: HTTP {torrent_resp.status_code}")
-                files_data = [("files", ("download.torrent", torrent_resp.content, "application/x-bittorrent"))]
-            except HTTPException:
-                raise
-            except Exception as e:
-                raise HTTPException(status_code=502, detail=f"Failed to fetch torrent: {str(e)}")
         elif files:
-            files_data = [("files", (files.filename, await files.read(), files.content_type))]
+            multipart.append(("files", (files.filename, await files.read(), files.content_type)))
         else:
             raise HTTPException(status_code=400, detail="No magnet link or file provided")
 
@@ -51,7 +40,7 @@ async def add_torrent(
             target_url = f"{MAGNET_BRIDGE_URL}/api/{MANAGED_CATEGORY}/add"
             resp = await client.post(
                 target_url,
-                files=files_data if files_data else multipart,
+                files=multipart,
                 timeout=30.0,
             )
 
