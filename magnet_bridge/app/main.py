@@ -286,6 +286,7 @@ async def add_torrent(
 
             asyncio.create_task(log_success(arr, urls))
 
+
             return "Submission successful"
         except Exception as e:
             if isinstance(e, HTTPException):
