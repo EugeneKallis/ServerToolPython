@@ -1,6 +1,20 @@
 # komodo.toml v2 — auto sync, build, deploy on push
 # --- RESOURCE SYNCS (GitOps Self-Management) ---
+[[resource_sync]]
+name = "servertoolpython-sync-dev"
+[resource_sync.config]
+repo = "EugeneKallis/ServerToolPython"
+branch = "develop"
+file_paths = ["komodo.toml"]
+auto_sync = true
 
+[[resource_sync]]
+name = "servertoolpython-sync-prod"
+[resource_sync.config]
+repo = "EugeneKallis/ServerToolPython"
+branch = "main"
+file_paths = ["komodo.toml"]
+auto_sync = true
 
 # --- BACKEND ---
 [[build]]
