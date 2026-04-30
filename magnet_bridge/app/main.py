@@ -55,9 +55,12 @@ async def get_torrent_name_by_hash(hash_code: str) -> Optional[str]:
             resp = await client.get(f"{DECYPHARR_URL}/api/torrents")
             if resp.status_code == 200:
                 data = resp.json()
-                torrents = data.get("torrents", [])
+                if isinstance(data, list):
+                    torrents = data
+                else:
+                    torrents = data.get("torrents", [])
                 for t in torrents:
-                    if t.get("info_hash", "").lower() == hash_code.lower():
+                    if isinstance(t, dict) and t.get("info_hash", "").lower() == hash_code.lower():
                         return t.get("name")
         except Exception as e:
             print(f"Error fetching torrent name for {hash_code}: {e}")
