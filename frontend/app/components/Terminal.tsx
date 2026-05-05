@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Trash2, XCircle } from 'lucide-react';
 import { useTerminal } from '../context/TerminalContext';
 
@@ -14,6 +14,8 @@ export default function Terminal({ className = '', environment = 'Local', docker
   const { lines, status, clearLines } = useTerminal();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [killing, setKilling] = useState(false);
+
+  const lineNumWidth = useMemo(() => `${String(lines.length + 1).length * 0.6}rem`, [lines.length]);
 
   const killAgent = async () => {
     setKilling(true);
@@ -68,12 +70,12 @@ export default function Terminal({ className = '', environment = 'Local', docker
       >
         {lines.map((line, idx) => (
           <div key={idx} className="flex gap-3">
-            <span className="text-outline select-none text-[11px] w-6 shrink-0 text-right">{idx + 1}</span>
+            <span className="text-outline select-none text-[11px] shrink-0 text-right" style={{ minWidth: lineNumWidth }}>{idx + 1}</span>
             <span className="whitespace-pre-wrap text-on-surface-variant text-[12px] leading-relaxed">{line}</span>
           </div>
         ))}
         <div className="flex gap-3 animate-pulse">
-          <span className="text-outline select-none text-[11px] w-6 shrink-0 text-right">{lines.length + 1}</span>
+          <span className="text-outline select-none text-[11px] shrink-0 text-right" style={{ minWidth: lineNumWidth }}>{lines.length + 1}</span>
           <span className="w-2 h-4 bg-primary-fixed-dim/60" />
         </div>
       </div>

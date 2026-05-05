@@ -74,11 +74,22 @@ body {
 
 .glass-panel {
   background: rgba(53, 53, 52, 0.6);
-  backdrop-filter: blur(20px);
+  background-filter: grayscale(1);
+}
+@supports (backdrop-filter: blur(20px)) {
+  .glass-panel {
+    backdrop-filter: blur(20px);
+  }
 }
 
 .kinetic-gradient {
   background: linear-gradient(90deg, #00E38A 0%, #00FF9C 100%);
+}
+
+:root {
+  --z-dropdown: 30;
+  --z-sidebar-overlay: 40;
+  --z-modal: 50;
 }
 
 .material-symbols-outlined {

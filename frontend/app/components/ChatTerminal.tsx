@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Send, Bot, User, Terminal, ChevronDown, Trash2, XCircle, AlertCircle, Info, Plus, MessageSquare, PanelLeftOpen, PanelLeftClose, Paperclip, FileText, Image as ImageIcon, X } from 'lucide-react';
 import { useTerminal, TerminalFeedItem } from '../context/TerminalContext';
 import { useAgentCount } from '../hooks/useAgentCount';
@@ -45,13 +45,22 @@ function Markdown({ content }: { content: string }) {
 
   const renderInline = (text: string): React.ReactNode[] => {
     const parts: React.ReactNode[] = [];
-    const re = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__|_[^_]+_)/g;
+    const re = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__|_[^_]+_|\[([^\]]+)\]\(([^)]+)\))/g;
     let last = 0, m;
     while ((m = re.exec(text)) !== null) {
       if (m.index > last) parts.push(text.slice(last, m.index));
       const t = m[0];
       if (t.startsWith('`')) parts.push(<code key={m.index}>{t.slice(1, -1)}</code>);
       else if (t.startsWith('**') || t.startsWith('__')) parts.push(<strong key={m.index}>{t.slice(2, -2)}</strong>);
+      else if (t.startsWith('[') && t.includes('](')) {
+        const label = m[2];
+        let href = m[3];
+        try {
+          const url = new URL(href);
+          if (!['http:', 'https:'].includes(url.protocol)) href = '#';
+        } catch { href = '#'; }
+        parts.push(<a key={m.index} href={href} className="text-primary-fixed-dim hover:underline" target="_blank" rel="noopener noreferrer">{label}</a>);
+      }
       else parts.push(<em key={m.index}>{t.slice(1, -1)}</em>);
       last = m.index + t.length;
     }
@@ -210,6 +219,10 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
   const fileInputRef = useRef<HTMLInputElement>(null);
   const msgCounter = useRef(0);
   const agentCount = useAgentCount();
+
+  const sortedModels = useMemo(() => [...models].sort((a, b) => a.localeCompare(b)), [models]);
+
+  const shellHistoryRev = useMemo(() => [...shellHistory].slice(0, 5).reverse(), [shellHistory]);
 
   // Merge terminal feed items and chat messages, sorted by id (timestamp)
   const feed: FeedEntry[] = [
@@ -552,6 +565,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
             onClick={() => setShowHistory(v => !v)}
             className={`p-1 transition-colors hover:bg-surface-container-high border border-transparent hover:border-outline-variant ${showHistory ? 'text-primary-fixed-dim' : 'text-outline hover:text-on-surface'}`}
             title={showHistory ? 'Hide history' : 'Show chat history'}
+            aria-label={showHistory ? 'Hide chat history' : 'Show chat history'}
           >
             {showHistory ? <PanelLeftClose size={13} /> : <PanelLeftOpen size={13} />}
           </button>
@@ -569,8 +583,8 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
               <ChevronDown size={9} className={`transition-transform ${showModelPicker ? 'rotate-180' : ''}`} />
             </button>
             {showModelPicker && (
-              <div className="absolute left-0 top-full mt-1 z-50 w-72 sm:w-80 max-w-[calc(100vw-2rem)] border border-outline-variant bg-surface-container-low shadow-xl max-h-96 overflow-y-auto">
-                {models.length > 0 ? models.map(m => {
+              <div className="absolute left-0 top-full mt-1 z-[var(--z-dropdown)] w-72 sm:w-80 max-w-[calc(100vw-2rem)] border border-outline-variant bg-surface-container-low shadow-xl max-h-96 overflow-y-auto">
+                {sortedModels.length > 0 ? sortedModels.map(m => {
                   const info = getModelInfo(m);
                   const isActive = m === selectedModel;
                   return (
@@ -681,9 +695,18 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
         {/* Feed */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-surface-dim min-w-0">
         {feed.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-outline gap-3">
-            <Terminal className="h-8 w-8" />
-            <p className="text-xs font-mono uppercase tracking-widest">Run a macro or start a chat</p>
+          <div className="flex flex-col items-center justify-center h-full text-outline gap-4">
+            <div className="relative">
+              <Terminal className="h-10 w-10 text-outline/40" />
+              <div className="absolute -top-1 -right-1 w-2 h-2">
+                <span className="absolute inset-0 rounded-full bg-primary-fixed-dim animate-ping opacity-75" />
+                <span className="absolute inset-0 rounded-full bg-primary-fixed-dim" />
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-mono uppercase tracking-[0.2em]">Awaiting Input</p>
+              <p className="text-[10px] font-mono text-outline/60 mt-1">Run a macro or start a chat</p>
+            </div>
           </div>
         )}
 
@@ -833,10 +856,8 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
         {showShellSuggestions && (
           <div className="mb-1 border border-outline-variant bg-surface-container overflow-hidden max-h-48 overflow-y-auto flex flex-col">
             <div className="px-3 py-1 text-[9px] font-mono text-outline uppercase tracking-wider border-b border-outline-variant shrink-0">Recent commands — ↑↓ to navigate</div>
-            {[...shellHistory.slice(0, 5)].reverse().map((cmd, i) => {
-              // reversed index relative to shellHistory: bottom item = shellHistory[0] = historyIndex 0
-              const visibleCount = Math.min(shellHistory.length, 5);
-              const histIdx = visibleCount - 1 - i;
+            {shellHistoryRev.map((cmd, i) => {
+              const histIdx = shellHistory.length - 1 - i;
               const isActive = histIdx === historyIndex;
               return (
                 <button
@@ -869,6 +890,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
             disabled={!selectedModel || isStreaming}
             className="flex-shrink-0 px-3 self-stretch flex items-center text-outline hover:text-on-surface border-r border-outline-variant hover:bg-surface-container-high disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             title="Attach file"
+            aria-label="Attach file"
           >
             <Paperclip size={14} />
           </button>
@@ -885,7 +907,7 @@ export default function ChatTerminal({ className = '', environment = 'Local', do
             placeholder={selectedModel ? `Ask ${selectedModel}… or /shell <command>` : '/shell <command> or connect Ollama to chat…'}
             disabled={false}
             rows={1}
-            className="flex-1 resize-none bg-transparent px-3 py-2 text-sm font-mono text-on-surface placeholder-outline focus:outline-none disabled:opacity-50 max-h-32 overflow-y-auto"
+            className="flex-1 resize-none bg-transparent px-3 py-2 text-sm font-mono text-on-surface placeholder:text-outline focus:outline-none focus-visible:ring-1 focus-visible:ring-primary-fixed-dim disabled:opacity-50 max-h-32 overflow-y-auto"
             style={{ minHeight: '38px' }}
           />
           <button

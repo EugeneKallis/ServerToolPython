@@ -30,6 +30,9 @@ interface TerminalContextType {
 
 const TerminalContext = createContext<TerminalContextType | undefined>(undefined);
 
+const MAX_LINES = 10000;
+const MAX_FEED_ITEMS = 500;
+
 export function TerminalProvider({ children }: { children: React.ReactNode }) {
   const [lines, setLines] = useState<string[]>(['Initializing terminal...']);
   const [feedItems, setFeedItems] = useState<TerminalFeedItem[]>([]);
@@ -50,7 +53,10 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
     socket.onopen = () => {
       console.log('Connected to terminal WebSocket');
       setStatus('connected');
-      setLines(prev => [...prev, '[System] Connected to backend.']);
+      setLines(prev => {
+        const next = [...prev, '[System] Connected to backend.'];
+        return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+      });
       setFeedItems(prev => [...prev, { type: 'system', id: Date.now(), text: 'Connected to backend.' }]);
     };
 
@@ -60,13 +66,22 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
         const runId: string | undefined = data.run_id;
 
         if (data.status === 'started') {
-          setLines(prev => [...prev, `$ ${data.command}`]);
+          setLines(prev => {
+            const next = [...prev, `$ ${data.command}`];
+            return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+          });
           const id = Date.now();
           if (runId) runIdToFeedId.current.set(runId, id);
-          setFeedItems(prev => [...prev, { type: 'agent', id, runId, command: data.command, lines: [], done: false }]);
+          setFeedItems(prev => {
+            const next: TerminalFeedItem[] = [...prev, { type: 'agent', id, runId, command: data.command, lines: [], done: false }];
+            return next.length > MAX_FEED_ITEMS ? next.slice(-MAX_FEED_ITEMS) : next;
+          });
         } else if (data.status === 'completed') {
           if (data.exit_code !== 0) {
-            setLines(prev => [...prev, `✗ exit ${data.exit_code}`]);
+            setLines(prev => {
+              const next = [...prev, `✗ exit ${data.exit_code}`];
+              return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+            });
           }
           const agentId = runId ? runIdToFeedId.current.get(runId) : undefined;
           if (agentId !== undefined) {
@@ -79,7 +94,10 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
           }
         } else if (data.status === 'streaming') {
           const message = data.message || data.error;
-          setLines(prev => [...prev, message]);
+          setLines(prev => {
+            const next = [...prev, message];
+            return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+          });
           const agentId = runId ? runIdToFeedId.current.get(runId) : undefined;
           if (agentId !== undefined) {
             setFeedItems(prev => prev.map(item =>
@@ -89,7 +107,10 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
             ));
           }
         } else if (data.status === 'error') {
-          setLines(prev => [...prev, `[Error] ${data.error}`]);
+          setLines(prev => {
+            const next = [...prev, `[Error] ${data.error}`];
+            return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+          });
           const agentId = runId ? runIdToFeedId.current.get(runId) : undefined;
           if (agentId !== undefined) {
             setFeedItems(prev => prev.map(item =>
@@ -100,21 +121,39 @@ export function TerminalProvider({ children }: { children: React.ReactNode }) {
             if (runId) runIdToFeedId.current.delete(runId);
           }
         } else if (data.status === 'reset') {
-          setLines(prev => [...prev, `[System] ${data.message}`]);
-          setFeedItems(prev => [...prev, { type: 'system', id: Date.now(), text: data.message }]);
+          setLines(prev => {
+            const next = [...prev, `[System] ${data.message}`];
+            return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+          });
+          setFeedItems(prev => {
+            const next: TerminalFeedItem[] = [...prev, { type: 'system', id: Date.now(), text: data.message }];
+            return next.length > MAX_FEED_ITEMS ? next.slice(-MAX_FEED_ITEMS) : next;
+          });
         } else {
-          setLines(prev => [...prev, `[Agent] ${data.message || event.data}`]);
+          setLines(prev => {
+            const next = [...prev, `[Agent] ${data.message || event.data}`];
+            return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+          });
         }
       } catch {
-        setLines(prev => [...prev, `[Raw] ${event.data}`]);
+        setLines(prev => {
+          const next = [...prev, `[Raw] ${event.data}`];
+          return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+        });
       }
     };
 
     socket.onclose = () => {
       console.log('Disconnected from terminal WebSocket');
       setStatus('disconnected');
-      setLines(prev => [...prev, '[System] Disconnected. Retrying in 5s...']);
-      setFeedItems(prev => [...prev, { type: 'system', id: Date.now(), text: 'Disconnected. Retrying in 5s...' }]);
+      setLines(prev => {
+        const next = [...prev, '[System] Disconnected. Retrying in 5s...'];
+        return next.length > MAX_LINES ? next.slice(-MAX_LINES) : next;
+      });
+      setFeedItems(prev => {
+        const next: TerminalFeedItem[] = [...prev, { type: 'system', id: Date.now(), text: 'Disconnected. Retrying in 5s...' }];
+        return next.length > MAX_FEED_ITEMS ? next.slice(-MAX_FEED_ITEMS) : next;
+      });
       setTimeout(doConnect, 5000);
     };
 

@@ -89,9 +89,10 @@ export default function Sidebar({ isOpen, onClose }: { isOpen: boolean; onClose:
                     <ul className='space-y-0.5'>
                       {group.macros.map((macro: Macro) => (
                         <li key={macro.id}>
-                          <button
+<button
                             onClick={() => setConfirmMacro(macro)}
-                            className='w-full px-3 py-2 text-left text-sm font-mono text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary-fixed border-l-2 border-transparent hover:border-primary-fixed-dim'
+                            aria-label={`Execute macro: ${macro.name}`}
+                            className="w-full px-3 py-2 text-left text-sm font-mono text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary-fixed border-l-2 border-transparent hover:border-primary-fixed-dim"
                           >
                             {macro.name}
                           </button>

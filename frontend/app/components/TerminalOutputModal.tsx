@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
 interface TerminalOutputModalProps {
@@ -10,7 +10,9 @@ interface TerminalOutputModalProps {
 }
 
 export default function TerminalOutputModal({ lines, command, onClose }: TerminalOutputModalProps) {
-  // Prevent background scrolling while modal is open
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -18,14 +20,13 @@ export default function TerminalOutputModal({ lines, command, onClose }: Termina
     };
   }, []);
 
-  // Close on ESC key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, []);
 
   return (
     <div
