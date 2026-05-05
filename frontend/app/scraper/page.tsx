@@ -58,7 +58,7 @@ function ItemCard({ item, isActive, onHide }: {
       setState(fileId, 'error');
       setTimeout(() => setState(fileId, 'idle'), 3000);
     }
-  }, [item.id, onHide, bridgeStates]);
+  }, [item.id, onHide]);
 
   useEffect(() => {
     if (!isActive) return;
@@ -78,14 +78,13 @@ function ItemCard({ item, isActive, onHide }: {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [isActive, item.id, nonProjectjavMagnet, onHide, sendToBridge, bridgeStates]);
+  }, [isActive, item.id, nonProjectjavMagnet, onHide, sendToBridge]);
 
   const stateLabel = (s: BridgeStateValue, fallback: string) =>
     s === 'loading' ? '…' : s === 'done' ? '✓' : s === 'error' ? '✗' : fallback;
 
   return (
     <div className={`h-full w-full min-w-0 flex flex-col bg-surface-container border-b border-outline-variant overflow-hidden ${item.is_downloaded ? 'opacity-50' : ''}`}>
-      {/* Image(s) */}
       <div className="flex-1 min-h-0 bg-black overflow-hidden relative flex">
         {showSideBySide ? (
           <>
@@ -136,9 +135,7 @@ function ItemCard({ item, isActive, onHide }: {
         )}
       </div>
 
-      {/* Footer */}
       <div className="shrink-0 w-full min-w-0 px-3 sm:px-4 pt-3 pb-3 border-t border-outline-variant flex flex-col gap-2">
-        {/* Title */}
         <p className={`text-xs sm:text-sm font-mono text-on-surface leading-snug truncate ${item.is_downloaded ? 'line-through text-outline' : ''}`}>
           {item.title}
         </p>
@@ -197,7 +194,20 @@ export default function ScraperPage() {
   const [tagsOpen, setTagsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isScraping, setIsScraping] = useState(false);
+  const [modalOpen, setModalOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        setModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalOpen]);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -253,7 +263,6 @@ export default function ScraperPage() {
     fetchItems();
   };
 
-  // Tag counts
   const tagMap: Record<string, number> = {};
   items.forEach(item => {
     (item.tags ?? '').split(',').filter(Boolean).forEach(t => {
@@ -270,12 +279,27 @@ export default function ScraperPage() {
     : items;
 
   return (
-    <div className="flex flex-col h-full w-full max-w-full overflow-x-hidden bg-surface-dim text-on-surface">
+    <div className="relative flex-1 min-h-0 flex flex-col w-full max-w-full overflow-x-hidden bg-surface-dim text-on-surface">
+      {modalOpen && (
+        <div className="absolute inset-0 z-50 bg-black flex items-center justify-center">
+          <div className="flex flex-col items-center gap-6 text-center max-w-sm px-6">
+            <p className="font-headline text-xl font-bold text-on-surface tracking-wide">
+              Scraper Safety Warning
+            </p>
+            <p className="text-sm font-body text-on-surface-variant leading-relaxed">
+              This page contains adult content. Click the button below or press Enter to proceed.
+            </p>
+            <button
+              onClick={() => setModalOpen(false)}
+              className="flex items-center gap-2 text-sm font-mono text-primary-fixed-dim border border-primary-fixed-dim px-6 py-3 hover:bg-surface-container-high transition-colors"
+            >
+              Enter Scraper
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Controls */}
       <div className="shrink-0 flex flex-col gap-2 px-3 sm:px-4 lg:px-6 pt-3 sm:pt-4 lg:pt-5 pb-2 border-b border-outline-variant relative z-10 bg-surface-dim">
-
-        {/* Header row */}
         <div className="flex items-center gap-2 flex-wrap">
           <h1 className="font-headline font-bold text-sm uppercase tracking-[0.15em] text-on-surface mr-auto">Scraper</h1>
 
@@ -299,7 +323,6 @@ export default function ScraperPage() {
           </button>
         </div>
 
-        {/* Source tabs */}
         <div className="flex border-b border-outline-variant -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6">
           {SOURCES.map(s => (
             <button
@@ -316,7 +339,6 @@ export default function ScraperPage() {
           ))}
         </div>
 
-        {/* Tag filter */}
         {availableTags.length > 0 && (
           <div>
             <button
@@ -347,10 +369,8 @@ export default function ScraperPage() {
             )}
           </div>
         )}
+      </div>
 
-      </div>{/* end controls */}
-
-      {/* Items — snap scroll */}
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-scroll overflow-x-hidden snap-y snap-mandatory">
         {loading && (
           <div className="h-full flex items-center justify-center text-outline text-xs font-mono">Loading…</div>
