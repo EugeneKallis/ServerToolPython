@@ -1,6 +1,7 @@
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy import String, Boolean, ForeignKey, MetaData, Text, DateTime, Float, Integer
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 naming_convention = {
@@ -160,3 +161,11 @@ class QuickLink(Base):
     label: Mapped[str] = mapped_column(String)
     url: Mapped[str] = mapped_column(String)
     ord: Mapped[int] = mapped_column(default=0)
+
+
+class AppSettings(Base):
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
