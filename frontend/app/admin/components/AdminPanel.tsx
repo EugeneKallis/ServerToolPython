@@ -248,6 +248,206 @@ function QuickLinksPanel({ showSuccess }: { showSuccess: (m: string) => void }) 
   );
 }
 
+// ─── Config sub-panel ───────────────────────────────────────────────────────
+
+interface AppPreferences {
+  theme?: string;
+  default_macro_group_id?: number | null;
+  terminal_font_size?: number;
+  [key: string]: any;
+}
+
+function ConfigPanel({ showSuccess }: { showSuccess: (m: string) => void }) {
+  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Preferences editing
+  const [prefs, setPrefs] = useState<AppPreferences>({});
+  const [prefsDirty, setPrefsDirty] = useState(false);
+
+  const fetchSettings = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/settings');
+      if (!res.ok) {
+        if (res.status === 404) {
+          setError('Settings endpoint not available yet (backend may still be building).');
+          setLoading(false);
+          return;
+        }
+        throw new Error(res.statusText);
+      }
+      const data = await res.json();
+      setSettings(data);
+      if (data.app_preferences) {
+        setPrefs(data.app_preferences);
+      }
+    } catch (e: any) {
+      setError('Could not load settings: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+
+  const handlePrefChange = (key: string, value: any) => {
+    setPrefs(prev => ({ ...prev, [key]: value }));
+    setPrefsDirty(true);
+  };
+
+  const handleSavePrefs = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/settings/app_preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: prefs }),
+      });
+      if (!res.ok) throw new Error(res.statusText);
+      await fetchSettings();
+      setPrefsDirty(false);
+      showSuccess('Preferences saved.');
+    } catch (e: any) {
+      alert('Save failed: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const arrInstances = settings.arr_instances?.arr_instances ?? [];
+  const quickLinks = settings.quick_links?.quick_links ?? [];
+  const macroGroups = settings.macro_groups?.macro_groups ?? [];
+
+  if (loading) {
+    return (
+      <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex items-center justify-center">
+        <span className="text-xs font-mono text-outline animate-pulse">Loading settings…</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-xs font-mono text-error mb-2">{error}</p>
+          <button onClick={fetchSettings} className="text-xs font-mono text-primary-fixed hover:underline">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 border border-outline-variant bg-surface-container p-4 flex flex-col h-full overflow-y-auto gap-4">
+      {/* Summary stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'ARR Instances', value: arrInstances.length },
+          { label: 'Macro Groups', value: macroGroups.length },
+          { label: 'Quick Links', value: quickLinks.length },
+        ].map(stat => (
+          <div key={stat.label} className="bg-surface-container-high border border-outline-variant px-3 py-2">
+            <span className="block text-[9px] font-mono font-bold uppercase tracking-widest text-outline">{stat.label}</span>
+            <span className="block text-xl font-mono font-bold text-primary-fixed mt-0.5">{stat.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* App Preferences */}
+      <div className="border border-outline-variant bg-surface-container-low p-4">
+        <h3 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline mb-3">App Preferences</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-[10px] font-mono text-outline uppercase mb-1">Theme</label>
+            <select
+              value={prefs.theme ?? 'dark'}
+              onChange={e => handlePrefChange('theme', e.target.value)}
+              className="w-full bg-surface-container-lowest border border-outline-variant px-2 py-1.5 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
+            >
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-mono text-outline uppercase mb-1">Terminal Font Size</label>
+            <input
+              type="number"
+              min={10}
+              max={24}
+              value={prefs.terminal_font_size ?? 14}
+              onChange={e => handlePrefChange('terminal_font_size', parseInt(e.target.value))}
+              className="w-full bg-surface-container-lowest border border-outline-variant px-2 py-1.5 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none"
+            />
+          </div>
+        </div>
+        {prefsDirty && (
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={handleSavePrefs}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-primary-fixed text-on-primary hover:opacity-80 disabled:opacity-40 transition-opacity"
+            >
+              {saving ? 'Saving…' : 'Save Preferences'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ARR Instances preview */}
+      <div className="border border-outline-variant bg-surface-container-low p-4">
+        <h3 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline mb-2">ARR Instances</h3>
+        {arrInstances.length === 0 ? (
+          <p className="text-xs font-mono text-zinc-500">No ARR instances configured.</p>
+        ) : (
+          <div className="space-y-1">
+            {arrInstances.map((inst: any) => (
+              <div key={inst.id} className="flex items-center justify-between px-2 py-1.5 bg-surface-container border border-outline-variant">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${inst.enabled ? 'bg-primary-fixed' : 'bg-zinc-600'}`} />
+                  <span className="text-xs font-mono text-on-surface">{inst.name}</span>
+                  <span className="text-[10px] font-mono text-outline uppercase">{inst.type}</span>
+                </div>
+                <span className="text-[10px] font-mono text-outline">{inst.url}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick Links preview */}
+      <div className="border border-outline-variant bg-surface-container-low p-4">
+        <h3 className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline mb-2">Quick Links</h3>
+        {quickLinks.length === 0 ? (
+          <p className="text-xs font-mono text-zinc-500">No quick links configured.</p>
+        ) : (
+          <div className="space-y-1">
+            {quickLinks.map((link: any) => (
+              <div key={link.id} className="flex items-center justify-between px-2 py-1.5 bg-surface-container border border-outline-variant">
+                <span className="text-xs font-mono text-on-surface">{link.label}</span>
+                <span className="text-[10px] font-mono text-outline truncate max-w-xs">{link.url}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Raw JSON viewer */}
+      <details className="border border-outline-variant bg-surface-container-low">
+        <summary className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-outline px-3 py-2 cursor-pointer hover:text-on-surface">
+          Raw Settings JSON
+        </summary>
+        <pre className="px-3 pb-3 text-[10px] font-mono text-primary-fixed-dim overflow-x-auto">
+          {JSON.stringify(settings, null, 2)}
+        </pre>
+      </details>
+    </div>
+  );
+}
+
 // ─── Main AdminPanel ─────────────────────────────────────────────────────────
 
 export function AdminPanel() {
@@ -256,7 +456,7 @@ export function AdminPanel() {
   const [selectedMacro, setSelectedMacro] = useState<Macro | null>(null);
 
   // Top-level tab
-  const [activeTab, setActiveTab] = useState<'macros' | 'chat' | 'links'>('macros');
+  const [activeTab, setActiveTab] = useState<'macros' | 'chat' | 'links' | 'config'>('macros');
 
   // Modals state
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -270,6 +470,18 @@ export function AdminPanel() {
 
   const [isArgModalOpen, setIsArgModalOpen] = useState(false);
   const [addingArgToCommand, setAddingArgToCommand] = useState<number | null>(null);
+
+  // Config panel state
+  const [configData, setConfigData] = useState<Record<string, any>>({});
+  const [configLoading, setConfigLoading] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
+
+  // Config IO modal (reuses ioModal/ioJson/ioConfirm pattern from macros)
+  const [configIoModal, setConfigIoModal] = useState<'export' | 'import' | null>(null);
+  const [configIoJson, setConfigIoJson] = useState('');
+  const [configIoCopied, setConfigIoCopied] = useState(false);
+  const [configIoImporting, setConfigIoImporting] = useState(false);
+  const [configIoConfirm, setConfigIoConfirm] = useState(false);
 
   const [view, setView] = useState<'groups' | 'macros' | 'commands'>('groups');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -593,7 +805,7 @@ export function AdminPanel() {
 
       {/* Tab switcher */}
       <div className="flex gap-1 border-b border-outline-variant pb-3">
-        {(['macros', 'chat', 'links'] as const).map((tab) => (
+        {(['macros', 'chat', 'links', 'config'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -603,7 +815,7 @@ export function AdminPanel() {
                 : 'border-transparent text-outline hover:text-on-surface hover:bg-surface-container-high'
             }`}
           >
-            {tab === 'macros' ? 'Macro Groups' : tab === 'chat' ? 'Chat History' : 'Quick Links'}
+            {tab === 'macros' ? 'Macro Groups' : tab === 'chat' ? 'Chat History' : tab === 'links' ? 'Quick Links' : 'Config'}
           </button>
         ))}
       </div>
@@ -616,6 +828,152 @@ export function AdminPanel() {
       {/* ── Quick Links Tab ── */}
       {activeTab === 'links' && (
         <QuickLinksPanel showSuccess={showSuccess} />
+      )}
+
+      {/* ── Config Tab ── */}
+      {activeTab === 'config' && (
+        <>
+          <ConfigPanel showSuccess={showSuccess} />
+
+          {/* Config Export/Import buttons */}
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={async () => {
+                const res = await fetch('/api/settings/export');
+                if (!res.ok) { alert('Export failed'); return; }
+                const data = await res.json();
+                setConfigIoJson(JSON.stringify(data, null, 2));
+                setConfigIoModal('export');
+              }}
+              className="flex items-center gap-1 text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
+            >
+              <Download size={13} /> Export
+            </button>
+            <button
+              onClick={() => {
+                setConfigIoJson('');
+                setConfigIoConfirm(false);
+                setConfigIoModal('import');
+              }}
+              className="flex items-center gap-1 text-xs font-mono text-on-surface-variant hover:text-on-surface bg-surface-container-high hover:bg-surface-container-highest px-2 py-1 border border-outline-variant transition-colors"
+            >
+              <Upload size={13} /> Import
+            </button>
+          </div>
+
+          {/* Config Export / Import Modal */}
+          {configIoModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+              <div className="w-full max-w-2xl mx-4 bg-surface-container-low border border-outline-variant flex flex-col" style={{ maxHeight: '80vh' }}>
+                <div className="flex items-center justify-between px-5 py-3 border-b border-outline-variant">
+                  <span className="text-xs font-mono font-bold uppercase tracking-widest text-on-surface">
+                    {configIoModal === 'export' ? 'Export All Settings' : 'Import Settings'}
+                  </span>
+                  <button onClick={() => setConfigIoModal(null)} className="text-outline hover:text-on-surface transition-colors text-lg leading-none">&times;</button>
+                </div>
+                <div className="flex-1 overflow-auto p-5 space-y-3">
+                  {configIoModal === 'export' && (
+                    <p className="text-xs font-mono text-outline">Full backup of all settings. Store this JSON safely.</p>
+                  )}
+                  {configIoModal === 'import' && (
+                    <p className="text-xs font-mono text-outline">Paste exported JSON below. <span className="text-error">This will overwrite ALL settings.</span></p>
+                  )}
+                  <textarea
+                    value={configIoJson}
+                    onChange={e => { if (configIoModal === 'import') { setConfigIoJson(e.target.value); setConfigIoConfirm(false); } }}
+                    readOnly={configIoModal === 'export'}
+                    rows={16}
+                    spellCheck={false}
+                    className="w-full border border-outline-variant bg-surface-container-lowest px-3 py-2.5 text-xs font-mono text-on-surface focus:border-primary-fixed-dim focus:outline-none resize-none"
+                    placeholder={configIoModal === 'import' ? '{ "arr_instances": { ... }, "macro_groups": { ... }, ... }' : ''}
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-3 px-5 py-3 border-t border-outline-variant">
+                  <button onClick={() => setConfigIoModal(null)} className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors">
+                    Cancel
+                  </button>
+                  {configIoModal === 'export' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          const blob = new Blob([configIoJson], { type: 'application/json' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'settings.json';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors"
+                      >
+                        <Download size={13} /> Save to File
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(configIoJson);
+                          setConfigIoCopied(true);
+                          setTimeout(() => setConfigIoCopied(false), 2000);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest transition-colors"
+                      >
+                        {configIoCopied ? <><Check size={13} /> Copied!</> : <><Copy size={13} /> Copy JSON</>}
+                      </button>
+                    </>
+                  )}
+                  {configIoModal === 'import' && !configIoConfirm && (
+                    <button
+                      onClick={() => setConfigIoConfirm(true)}
+                      disabled={!configIoJson.trim()}
+                      className="px-3 py-1.5 text-xs font-mono bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container-highest disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Import
+                    </button>
+                  )}
+                  {configIoModal === 'import' && configIoConfirm && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-error">This will overwrite ALL settings. Confirm?</span>
+                      <button
+                        onClick={() => setConfigIoConfirm(false)}
+                        className="px-3 py-1.5 text-xs font-mono text-outline hover:text-on-surface transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setConfigIoImporting(true);
+                          try {
+                            const parsed = JSON.parse(configIoJson);
+                            const res = await fetch('/api/settings/import', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify(parsed),
+                            });
+                            if (!res.ok) {
+                              const err = await res.json().catch(() => ({}));
+                              alert(`Import failed: ${err.detail ?? res.statusText}`);
+                              return;
+                            }
+                            setConfigIoModal(null);
+                            showSuccess('Settings imported successfully.');
+                          } catch {
+                            alert('Invalid JSON — please check your input.');
+                          } finally {
+                            setConfigIoImporting(false);
+                            setConfigIoConfirm(false);
+                          }
+                        }}
+                        disabled={configIoImporting}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono bg-error-container text-on-error-container hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
+                      >
+                        {configIoImporting ? 'Importing…' : 'Confirm Overwrite'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Macros Tab ── */}
